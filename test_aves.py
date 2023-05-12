@@ -35,6 +35,8 @@ model = AvesClassifier(
     model_path='./aves-base-bio.pt',
     num_classes=10)
 
+model.eval()
+
 # Create a 1-second random sound
 waveform = torch.rand((16_000))
 x = waveform.unsqueeze(0)
