@@ -61,6 +61,61 @@ class AvesClassifier(nn.Module):
         return loss, logits
 ```
 
+
+## Ported versions
+The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
+
+### TorchAudio
+Download both the parameters and the model config under `TorchAudio version` in [Pretrained models] (## Pretrained models).
+
+```python
+from torchaudio.models import wav2vec2_model
+
+class AvesTorchaudioWrapper(nn.Module):
+
+    def __init__(self, config_path, model_path):
+
+        super().__init__()
+
+        # reference: https://pytorch.org/audio/stable/_modules/torchaudio/models/wav2vec2/utils/import_fairseq.html
+
+        self.config = self.load_config(config_path)
+        self.model = wav2vec2_model(**self.config, aux_num_out=None)
+        self.model.load_state_dict(torch.load(model_path))
+        self.model.feature_extractor.requires_grad_(False)
+
+    def load_config(self, config_path):
+        with open(config_path, 'r') as ff:
+            obj = json.load(ff)
+
+        return obj
+
+    def forward(self, sig):
+        # extract_feature in the sorchaudio version will output all 12 layers' output, -1 to select the final one
+        out = self.model.extract_features(sig)[0][-1]
+
+        return out
+
+torchaudio_model = AvesTorchaudioWrapper(config_path, model_path)
+torchaudio_model.eval()
+
+```
+
+### Onnx
+Download the parameters and the model config under `Onnx version` in [Pretrained models] (## Pretrained models).
+NOTE: We observed that the Onnx version of AVES-`all` could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem.
+
+
+```python
+    import onnxruntime
+
+    ort_session = onnxruntime.InferenceSession(model_path)
+    ort_inputs = {ort_session.get_inputs()[0].name: sig}
+    ort_outs = ort_session.run(None, ort_inputs)
+    onnx_out = ort_outs[0]
+```
+
+
 ## Pretrained models
 
 | Configuration      | Pretraining data            | Hours     | Link to pretrained weights   | TorchAudio version | Onnx version |
