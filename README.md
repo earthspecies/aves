@@ -66,7 +66,7 @@ class AvesClassifier(nn.Module):
 The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
 
 ### TorchAudio
-Download both the parameters and the model config under `TorchAudio version` in [Pretrained models] (## Pretrained models).
+Download both the parameters and the model config under `TorchAudio version` in [Pretrained models](##pretrained-models).
 
 ```python
 from torchaudio.models import wav2vec2_model
@@ -102,7 +102,7 @@ torchaudio_model.eval()
 ```
 
 ### Onnx
-Download the parameters and the model config under `Onnx version` in [Pretrained models] (## Pretrained models).
+Download the parameters and the model config under `Onnx version` in [Pretrained models](##pretrained-models).
 NOTE: We observed that the Onnx version of AVES-`all` could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem.
 
 
