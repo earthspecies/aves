@@ -16,13 +16,26 @@ Create a conda environment by running, for example:
 conda create -n aves python=3.8 pytorch cudatoolkit=11.3 torchvision torchaudio cudnn -c pytorch -c conda-forge
 ```
 
-AVES is based on HuBERT, which is implemented in [fairseq](https://github.com/facebookresearch/fairseq), a sequence modeling toolkit developed by Meta AI. Check out [the specific commit](https://github.com/facebookresearch/fairseq/commit/eda703798dcfde11c1ee517805c27e8698285d71) of fairseq which AVES is based on, and install it via `pip`:
+Create your working directory:
+
+```
+mkdir aves
+```
+
+Or simply clone this repository:
+
+```
+git clone https://github.com/earthspecies/aves.git
+```
+
+AVES is based on HuBERT, which is implemented in [fairseq](https://github.com/facebookresearch/fairseq), a sequence modeling toolkit developed by Meta AI. Check out [the specific commit](https://github.com/facebookresearch/fairseq/commit/eda703798dcfde11c1ee517805c27e8698285d71) of fairseq which AVES is based on, and install it via `pip`. Please note that you might encounter import issues if you install fairseq directly under your working directory. In the code below, we demonstrate installation under a sibling directory."
 
 ```
 git clone https://github.com/facebookresearch/fairseq.git
 cd fairseq
 git checkout eda70379
 pip install --editable ./
+cd ../aves
 ```
 
 Download the pretrained weights. See the table below for the details. We recommend the AVES-`bio` configuration, as it was the best performing model overall in our paper.
