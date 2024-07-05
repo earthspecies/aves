@@ -2,6 +2,8 @@
 
 Update (6/5/2024): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
 
+Update (7/5/2024): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
+
 ## What is AVES?
 
 ![](./fig_aves.png)
@@ -162,3 +164,11 @@ See the table below for detailed information and pretrained models. *BEANS avg. 
 | BirdAVES-`biox`-base   | `bio` + xeno-canto               | 2570  | 0.678            | 0.476              |  [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.onnx) |
 | BirdAVES-`biox`-large  | `bio` + xeno-canto               | 2570  | **0.686**        | 0.511              | [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.onnx) |
 | BirdAVES-`bioxn`-large | `bio` + xeno-canto + iNaturalist | 3076  | 0.679            | **0.512**          | [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.onnx) |
+
+## Warning about batching in AVES models
+
+Padding will affect the embeddings produced by AVES and BirdAVES models, in both the fairseq and torchaudio versions. That is, two sound signals $x$ and $x_z = \mathrm{concat}(x, \mathrm{zeros}(n))$ will give different embeddings for every frame. The `lengths` argument does not fix this issue.
+
+This is a problem with the underlying HuBERT architecture, which could only be fixed in more recent architectures (see this [issue](https://github.com/pytorch/audio/issues/2242) and this [pull request](https://github.com/facebookresearch/fairseq/pull/3228) for more details).
+
+This can cause confusion if you are using a model with batch size greater than 1, as the embeddings for a certain sound will depend on the batch. Therefore, we suggest pre-computing embeddings for the sounds in your dataset using `batch_size=1`. You can then pad these embeddings themselves, if using them in mini-batches for training a downstream network.
