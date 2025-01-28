@@ -4,6 +4,8 @@ Update (6/5/2024): 🦜 We are excited to introduce our latest series of AVES mo
 
 Update (7/5/2024): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
 
+Update (27/1/2024): AVES release v0.1.0 as package.
+
 ## What is AVES?
 
 ![](./fig_aves.png)
@@ -16,122 +18,71 @@ See [our paper](https://arxiv.org/abs/2210.14493) for more details.
 
 ## How to use AVES
 
-Create a conda environment by running, for example:
+Create a virtual environment with anaconda by running, for example:
 
 ```
-conda create -n aves python=3.8 pytorch cudatoolkit=11.3 torchvision torchaudio cudnn -c pytorch -c conda-forge
+conda create -n aves python=3.10
+conda activate aves
 ```
 
-Create your working directory:
-
-```
-mkdir aves
-```
-
-Or simply clone this repository:
+Clone this repository:
 
 ```
 git clone https://github.com/earthspecies/aves.git
 ```
 
-AVES is based on HuBERT, which is implemented in [fairseq](https://github.com/facebookresearch/fairseq), a sequence modeling toolkit developed by Meta AI. Check out [the specific commit](https://github.com/facebookresearch/fairseq/commit/eda703798dcfde11c1ee517805c27e8698285d71) of fairseq which AVES is based on, and install it via `pip`. Please note that you might encounter import issues if you install fairseq directly under your working directory. In the code below, we demonstrate installation under a sibling directory."
-
+cd into the repo root folder and install the package:
 ```
-git clone https://github.com/facebookresearch/fairseq.git
-cd fairseq
-git checkout eda70379
-pip install --editable ./
-cd ../aves
+pip install -e .
 ```
-
-Download the pretrained weights. See the table below for the details. We recommend the AVES-`bio` configuration, as it was the best performing model overall in our paper.
-
-```
-wget https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt
-```
-
-You can load the model via the `fairseq.checkpoint_utils.load_model_ensemble_and_task()` method. You can implement a PyTorch classifier which uses AVES as follows. See [test_aves.py](./test_aves.py) for a working example of an AVES-based classifier. Note that AVES takes raw waveforms as input.
-
-```python
-class AvesClassifier(nn.Module):
-    def __init__(self, model_path, num_classes, embeddings_dim=768, multi_label=False):
-
-        super().__init__()
-
-        models, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([model_path])
-        self.model = models[0]
-        self.model.feature_extractor.requires_grad_(False)
-        self.head = nn.Linear(in_features=embeddings_dim, out_features=num_classes)
-
-        if multi_label:
-            self.loss_func = nn.BCEWithLogitsLoss()
-        else:
-            self.loss_func = nn.CrossEntropyLoss()
-
-    def forward(self, x, y=None):
-        out = self.model.extract_features(x)[0]
-        out = out.mean(dim=1)             # mean pooling
-        logits = self.head(out)
-
-        loss = None
-        if y is not None:
-            loss = self.loss_func(logits, y)
-
-        return loss, logits
-```
-
-
 ## Ported versions
 The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
 
 ### TorchAudio
-Download both the parameters and the model config under `TorchAudio version` in [Pretrained models](##pretrained-models).
+Download both the parameters and the model config under `TorchAudio version` in [Pretrained models]**Pretrained-models**.
 
-```python
-from torchaudio.models import wav2vec2_model
-
-class AvesTorchaudioWrapper(nn.Module):
-
-    def __init__(self, config_path, model_path):
-
-        super().__init__()
-
-        # reference: https://pytorch.org/audio/stable/_modules/torchaudio/models/wav2vec2/utils/import_fairseq.html
-
-        self.config = self.load_config(config_path)
-        self.model = wav2vec2_model(**self.config, aux_num_out=None)
-        self.model.load_state_dict(torch.load(model_path))
-        self.model.feature_extractor.requires_grad_(False)
-
-    def load_config(self, config_path):
-        with open(config_path, 'r') as ff:
-            obj = json.load(ff)
-
-        return obj
-
-    def forward(self, sig):
-        # extract_feature in the sorchaudio version will output all 12 layers' output, -1 to select the final one
-        out = self.model.extract_features(sig)[0][-1]
-
-        return out
-
-torchaudio_model = AvesTorchaudioWrapper(config_path, model_path)
-torchaudio_model.eval()
-
+#### Running the aves on your audio files
+Aves encodings can be computed from this folder (project root) like so
 ```
+aves -c /path/to/your/config.json -m /path/to/model.pt --path_to_audio_dir ./example_audios/ --output_dir /path/to/save/embeddings/
+```
+What you need to input are 4 things:
+1. The model config (see below, right click and "Save link as").
+2. The model file (see below, click to download the model corresponding to the config you saved).
+3. Path to a directory containing audio files (or individual paths --audio_file_paths parameter in aves/__main__.py)
+4. Path to save the embeddings for each file (--output_dir parameter)
+
+Output embeddings can be saved as torch tensors (--save_as "pt") or numpy arrays (--save_as "npy")
+
+#### Running tests
+To run tests you must first:
+1. Download the models specified in tests.py to the ./aves module folder.
+2. Run tests from the root folder ```pytest tests.py```
+
+#### Using aves as a classifier
+An example implementation for an AVES based classifier is provided in aves/aves.py *AvesClassifier*. This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
+
+Example code for testing this is also provided in the same file.
 
 ### Onnx
-Download the parameters and the model config under `Onnx version` in [Pretrained models](##pretrained-models).
-NOTE: We observed that the Onnx version of AVES-`all` could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem.
+Download the parameters and the model config under `Onnx version` in **Pretrained-models**.
+> NOTE: We observed that the Onnx version of AVES-`all` and BirdAVES could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem. When possible, use the TorchAudio version of the model.
 
+An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*. 
+> NOTE: Onnx models accept float32 numpy arrays as input and provide numpy arrays as outputs.
 
 ```python
-    import onnxruntime
+    from aves.aves_onnx import AvesOnnxModel
 
-    ort_session = onnxruntime.InferenceSession(model_path)
-    ort_inputs = {ort_session.get_inputs()[0].name: sig}
-    ort_outs = ort_session.run(None, ort_inputs)
-    onnx_out = ort_outs[0]
+    # example with BirdAVES large
+    model_path = "/path/to/birdaves-bioxn-large.onnx"
+    model = AvesOnnxModel(model_path)
+
+    # create random inputs for testing, 
+    # e.g. a batch of 2 audio files sampled at 16 KHz duration of 1 sec
+    inputs = np.random.randn(2, 16000).astype("float32")  # float64 doesn't work
+    onnx_out = model(inputs)
+    assert onnx_out.shape == (2, 49, 1024)  # embedding size is 1024 for birdaves large, dim 1 is time dimension
 ```
 
 
@@ -167,7 +118,7 @@ See the table below for detailed information and pretrained models. *BEANS avg. 
 
 ## Warning about batching in AVES models
 
-Padding will affect the embeddings produced by AVES and BirdAVES models, in both the fairseq and torchaudio versions. That is, two sound signals $x$ and $x_z = \mathrm{concat}(x, \mathrm{zeros}(n))$ will give different embeddings for every frame. The `lengths` argument does not fix this issue.
+Padding will affect the embeddings produced by AVES and BirdAVES models. That is, two sound signals $x$ and $x_z = \mathrm{concat}(x, \mathrm{zeros}(n))$ will give different embeddings for every frame. The `lengths` argument does not fix this issue.
 
 This is a problem with the underlying HuBERT architecture, which could only be fixed in more recent architectures (see this [issue](https://github.com/pytorch/audio/issues/2242) and this [pull request](https://github.com/facebookresearch/fairseq/pull/3228) for more details).
 
