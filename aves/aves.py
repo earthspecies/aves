@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 from torchaudio.models import wav2vec2_model
 
-import pdb
-
 
 def load_config(config_path: str) -> dict:
     with open(config_path, "r") as ff:
@@ -13,16 +11,19 @@ def load_config(config_path: str) -> dict:
     return obj
 
 
-class AvesTorchaudioWrapper(torch.nn.Module):
-    def __init__(self, config_path: str | Path, model_path: str | Path):
+class AvesTorchaudioWrapper(nn.Module):
+    def __init__(self, config_path: str | Path, model_path: str | Path = None):
         super().__init__()
 
         self.config = load_config(str(config_path))
+        print("Loading Hubert model (without AVES weights)...")
         self.model = wav2vec2_model(**self.config, aux_num_out=None)
-        self.model.load_state_dict(torch.load(str(model_path), weights_only=True))
-        # self.model.feature_extractor.requires_grad_(False)
+        if model_path is not None:
+            print("Loading AVES model weights from", model_path)
+            self.model.load_state_dict(torch.load(str(model_path), weights_only=True))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """For training, use the forward method to get the output of the model"""
         # extract_feature in the sorchaudio version will output all 12 layers' output, -1 to select the final one
         out = self.model.extract_features(inputs)[0][-1]
 
@@ -30,11 +31,12 @@ class AvesTorchaudioWrapper(torch.nn.Module):
 
     @torch.no_grad()
     def extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
+        """For inference, use the extract_features method to get the output of the model"""
         return self.forward(inputs)
 
 
 def load_feature_extractor(
-    config_path: str | Path, model_path: str | Path, device: str = "cuda", for_inference: bool = True
+    config_path: str | Path, model_path: str | Path = None, device: str = "cuda", for_inference: bool = True
 ) -> AvesTorchaudioWrapper:
     device = torch.device("cuda" if torch.cuda.is_available() and device == "cuda" else "cpu")
     if for_inference:
@@ -49,7 +51,6 @@ class AvesClassifier(nn.Module):
         config_path (str | Path): Path to the model configuration file
         model_path (str | Path): Path to the model weights file
         num_classes (int): Number of target classes
-        multi_label (bool, optional): Whether the task is multi-label classification. Defaults to False.
         freeze_feature_extractor (bool, optional): Whether to freeze the feature extractor. Defaults to True.
         for_inference (bool, optional): Whether to set the underlying feature extractor to inference mode. Defaults to False.
     """
@@ -57,8 +58,8 @@ class AvesClassifier(nn.Module):
     def __init__(
         self,
         config_path: str | Path,
-        model_path: str | Path,
         num_classes: int,
+        model_path: str | Path = None,  # or a pre-trained model path
         freeze_feature_extractor: bool = True,
         for_inference: bool = False,
     ):
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     # Initialize an AVES classifier with 10 target classes
     print("Initializing AVES classifier...")
     model = AvesClassifier(
-        config_path="birdaves-biox-large.json",  # "./aves_all.json",
+        config_path="../config/birdaves-biox-large.json",  # "./aves_all.json",
         model_path="birdaves-biox-large.torchaudio.pt",  # ./aves-base-all.torchaudio.pt",
         num_classes=10,
         for_inference=True,

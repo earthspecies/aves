@@ -5,5 +5,11 @@ from .aves import (
     AvesClassifier,
     load_feature_extractor,
 )
+from .aves_onnx import AvesOnnxModel
 
-__all__ = ["AvesTorchaudioWrapper", "AvesClassifier", "load_feature_extractor"]
+__all__ = [
+    "AvesTorchaudioWrapper",
+    "AvesClassifier",
+    "load_feature_extractor",
+    "AvesOnnxModel",
+]
