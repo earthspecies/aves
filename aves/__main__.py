@@ -1,49 +1,10 @@
 """Main entry point for the aves package."""
 
-from typing import Literal
 import argparse
 from pathlib import Path
 
-import numpy as np
-import torch
-import torchaudio
-
 from .aves import load_feature_extractor
-
-
-ALLOWED_AUDIO_FILE_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "m4a"]
-TARGET_SR = 16000  # Aves works with 16kHz audio
-
-
-def parse_audio_file_paths(audio_dir: str, audio_file_extension: str | None = None) -> list[Path]:
-    audio_dir = Path(audio_dir)
-    if audio_file_extension is None:
-        audio_files = []
-        for ext in ALLOWED_AUDIO_FILE_EXTENSIONS:
-            audio_files.extend(list(audio_dir.glob(f"*.{ext}")))
-    else:
-        audio_files = list(audio_dir.glob(f"*.{audio_file_extension}"))
-
-    return audio_files
-
-
-def save_embedding(embedding: torch.Tensor, output_file: Path, save_as: str) -> None:
-    print(f"Saving embedding to {output_file}...")
-    if save_as == "pt":
-        torch.save(embedding, output_file)
-    elif save_as == "npy":
-        np_embedding = embedding.cpu().numpy()
-        np.save(output_file, np_embedding)
-    else:
-        raise ValueError(f"Unsupported save_as format: {save_as}")
-
-
-def load_audio(audio_file: Path) -> torch.Tensor:
-    audio, sr = torchaudio.load(audio_file)
-    if sr != TARGET_SR:
-        resampler = torchaudio.transforms.Resample(sr, TARGET_SR)
-        audio = resampler(audio)
-    return audio
+from .utils import load_audio, parse_audio_file_paths, save_embedding
 
 
 def main():
@@ -90,5 +51,5 @@ def main():
         print(f"==== Processing {audio_file} ====")
 
         audio = load_audio(audio_file)
-        embedding = model.extract_features(audio)
+        embedding = model.extract_features(audio.to(args.device))
         save_embedding(embedding, Path(args.output_dir) / f"{audio_file.stem}.embedding", args.save_as)
