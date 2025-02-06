@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 import torch
 import torch.nn as nn
 from torchaudio.models import wav2vec2_model
@@ -12,36 +13,62 @@ def load_config(config_path: str) -> dict:
 
 
 class AvesTorchaudioWrapper(nn.Module):
-    def __init__(self, config_path: str | Path, model_path: str | Path = None):
+    def __init__(self, config_path: str | Path, model_path: str | Path = None, device: str = "cuda"):
         super().__init__()
 
         self.config = load_config(str(config_path))
+
         print("Loading Hubert model (without AVES weights)...")
         self.model = wav2vec2_model(**self.config, aux_num_out=None)
         if model_path is not None:
             print("Loading AVES model weights from", model_path)
             self.model.load_state_dict(torch.load(str(model_path), weights_only=True))
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        """For training, use the forward method to get the output of the model"""
-        # extract_feature in the sorchaudio version will output all 12 layers' output, -1 to select the final one
-        out = self.model.extract_features(inputs)[0][-1]
+        self.device = device
+
+    def forward(self, inputs: torch.Tensor, layers: list[int] | None = None) -> torch.Tensor | list[torch.Tensor]:
+        """For training, use the forward method to get the output of the model.
+
+        Args:
+            inputs (torch.Tensor): Input tensor
+            layers (list[int], optional): List of layers to extract. Defaults to None. If None, the last layer is selected.
+        """
+        # extract_feature in the torchaudio version will output all 12 layers' output, -1 to select the final one
+        out = self.model.extract_features(inputs)[0]
+
+        if layers is not None:
+            out = [out[i] for i in layers]
+        else:
+            # take last layer
+            out = out[-1]
 
         return out
 
     @torch.no_grad()
-    def extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
+    def extract_features(self, inputs: torch.Tensor, layers: list[int] | None = None) -> torch.Tensor:
         """For inference, use the extract_features method to get the output of the model"""
-        return self.forward(inputs)
+        return self.forward(inputs, layers)
 
 
 def load_feature_extractor(
     config_path: str | Path, model_path: str | Path = None, device: str = "cuda", for_inference: bool = True
 ) -> AvesTorchaudioWrapper:
-    device = torch.device("cuda" if torch.cuda.is_available() and device == "cuda" else "cpu")
+    """Load the AVES feature extractor model
+
+    Args:
+        config_path (str | Path): Path to the model configuration file
+        model_path (str | Path): Path to the model weights file
+        device (str, optional): Device to run the model on. Defaults to "cuda".
+        for_inference (bool, optional): Whether to set the underlying feature extractor to inference mode. Defaults to True.
+
+    Returns:
+        AvesTorchaudioWrapper: The AVES feature extractor model
+    """
+    device = "cuda" if torch.cuda.is_available() and device == "cuda" else "cpu"
     if for_inference:
-        return AvesTorchaudioWrapper(config_path, model_path).to(device).eval()
-    return AvesTorchaudioWrapper(config_path, model_path).to(device)
+        return AvesTorchaudioWrapper(config_path, model_path, device).to(device).eval()
+
+    return AvesTorchaudioWrapper(config_path, model_path, device).to(device)
 
 
 class AvesClassifier(nn.Module):
@@ -62,12 +89,16 @@ class AvesClassifier(nn.Module):
         model_path: str | Path = None,  # or a pre-trained model path
         freeze_feature_extractor: bool = True,
         for_inference: bool = False,
+        device: str = "cuda",
     ):
         super().__init__()
 
-        self.model = load_feature_extractor(config_path, model_path, for_inference=for_inference)
+        self.model = load_feature_extractor(config_path, model_path, for_inference=for_inference, device=device)
         embeddings_dim = self.model.config.get("encoder_embed_dim", 768)
         self.head = nn.Linear(in_features=embeddings_dim, out_features=num_classes)
+
+        device = "cuda" if torch.cuda.is_available() and device == "cuda" else "cpu"
+        self.device = device  # you still have to move the model to the device you want to use
 
         if freeze_feature_extractor:
             print("Freezing feature extractor, it will NOT be updated during training!")
@@ -78,7 +109,7 @@ class AvesClassifier(nn.Module):
         else:
             self.loss_func = nn.CrossEntropyLoss()
 
-    def forward(self, inputs: torch.Tensor, labels: torch.Tensor = None) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor = None) -> tuple[torch.Tensor | None, torch.Tensor]:
         out = self.model.forward(inputs)
         out = out.mean(dim=1)  # mean pooling
         logits = self.head(out)
@@ -94,7 +125,7 @@ if __name__ == "__main__":
     # test
 
     # Initialize an AVES classifier with 10 target classes
-    print("Initializing AVES classifier...")
+    print("Initializing AVES classifier to CPU...")
     model = AvesClassifier(
         config_path="../config/birdaves-biox-large.json",  # "./aves_all.json",
         model_path="birdaves-biox-large.torchaudio.pt",  # ./aves-base-all.torchaudio.pt",
