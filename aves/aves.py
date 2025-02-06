@@ -1,3 +1,5 @@
+"""AVES: Audio and Visual Event Detection with Self-supervised learning"""
+
 import json
 from pathlib import Path
 
@@ -26,27 +28,32 @@ class AvesTorchaudioWrapper(nn.Module):
 
         self.device = device
 
-    def forward(self, inputs: torch.Tensor, layers: list[int] | None = None) -> torch.Tensor | list[torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, layers: list[int] | int | None = -1) -> torch.Tensor | list[torch.Tensor]:
         """For training, use the forward method to get the output of the model.
 
         Args:
             inputs (torch.Tensor): Input tensor
-            layers (list[int], optional): List of layers to extract. Defaults to None. If None, the last layer is selected.
+            layers (list[int] | int | None, optional): Layer(s) to extract features from. Defaults to -1 (last layer).
         """
-        # extract_feature in the torchaudio version will output all 12 layers' output, -1 to select the final one
         out = self.model.extract_features(inputs)[0]
 
-        if layers is not None:
-            out = [out[i] for i in layers]
-        else:
-            # take last layer
-            out = out[-1]
+        if layers and isinstance(layers, int):
+            return out[layers]
 
+        if layers and isinstance(layers, list):
+            return [out[layer] for layer in layers]
+
+        # return all layers
         return out
 
     @torch.no_grad()
-    def extract_features(self, inputs: torch.Tensor, layers: list[int] | None = None) -> torch.Tensor:
-        """For inference, use the extract_features method to get the output of the model"""
+    def extract_features(self, inputs: torch.Tensor, layers: list[int] | int | None = -1) -> torch.Tensor:
+        """For inference, use the extract_features method to get the output of the model.
+
+        Args:
+            inputs (torch.Tensor): Input tensor
+            layers (list[int] | int | None, optional): Layer(s) to extract features from. Defaults to -1 (last layer).
+        """
         return self.forward(inputs, layers)
 
 

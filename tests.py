@@ -10,6 +10,7 @@ and placed them in the ../aves folder.
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import torch
 
 from aves import AvesClassifier, AvesOnnxModel, load_feature_extractor
@@ -34,7 +35,7 @@ def test_aves_feature_extractor():
     assert embeddings.shape == (2, 49, 768)
 
     # test multiple layers
-    embeddings = model.extract_features(torch.rand(2, 16000), layers=[-1, -2])
+    embeddings = model.extract_features(torch.rand(2, 16000), layers=[-2, -1])
     assert len(embeddings) == 2
     assert embeddings[0].shape == (2, 49, 768)
     assert embeddings[1].shape == (2, 49, 768)
@@ -113,6 +114,44 @@ def test_cli():
 
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
     assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
+
+
+def test_cli_multiple_layers():
+    # Test the AVES CLI
+    p = subprocess.run(
+        [
+            "aves",
+            "-c",
+            "config/default_cfg_birdaves-biox-large.json",
+            "-m",
+            "aves/birdaves-biox-large.torchaudio.pt",
+            "--path_to_audio_dir",
+            "example_audios/",
+            "--output_dir",
+            "example_audios/",
+            "--layers",
+            "0-3",
+            "--save_as",
+            "npy",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+
+    assert p.returncode == 0
+    assert b"Processing 2 audio files..." in p.stdout
+    assert b"Saving embedding to example_audios/" in p.stdout
+    # check that embdding files are saved
+
+    assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
+    assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
+
+    # load one of them
+    emb = np.load("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy", allow_pickle=True)
+    assert len(emb) == 4
+    assert isinstance(emb[0], np.ndarray)
+    assert emb[0].shape == (2, 1049, 768)
 
 
 def test_onnx_vs_torchaudio_output():
