@@ -7,8 +7,12 @@ IMPORTANT! This assumes that you have downloaded these two checkpoints:2
 and placed them in the ../aves folder.
 """
 
+import subprocess
+from pathlib import Path
+
 import torch
-from aves import AvesClassifier, load_feature_extractor, AvesOnnxModel
+
+from aves import AvesClassifier, AvesOnnxModel, load_feature_extractor
 
 
 def test_feature_extractor_loader():
@@ -26,8 +30,14 @@ def test_aves_feature_extractor():
         config_path="config/default_cfg_aves-base-all.json", device="cpu", for_inference=True
     )
     embeddings = model.extract_features(torch.rand(2, 16000))
-    print("Embeddings shape", embeddings.shape)
+
     assert embeddings.shape == (2, 49, 768)
+
+    # test multiple layers
+    embeddings = model.extract_features(torch.rand(2, 16000), layers=[-1, -2])
+    assert len(embeddings) == 2
+    assert embeddings[0].shape == (2, 49, 768)
+    assert embeddings[1].shape == (2, 49, 768)
 
 
 def test_birdaves_feature_extractor():
@@ -49,6 +59,7 @@ def test_aves_classifier():
         num_classes=10,
         for_inference=True,
         freeze_feature_extractor=True,
+        device="cpu",
     )
 
     print("Running forward pass...")
@@ -72,6 +83,36 @@ def test_aves_onnx():
     # Run the forward pass
     outputs = model(x)
     assert outputs.shape == (2, 49, 1024)
+
+
+def test_cli():
+    # Test the AVES CLI
+    p = subprocess.run(
+        [
+            "aves",
+            "-c",
+            "config/default_cfg_birdaves-biox-large.json",
+            "-m",
+            "aves/birdaves-biox-large.torchaudio.pt",
+            "--path_to_audio_dir",
+            "example_audios/",
+            "--output_dir",
+            "example_audios/",
+            "--save_as",
+            "npy",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+
+    assert p.returncode == 0
+    assert b"Processing 2 audio files..." in p.stdout
+    assert b"Saving embedding to example_audios/" in p.stdout
+    # check that embdding files are saved
+
+    assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
+    assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
 
 
 def test_onnx_vs_torchaudio_output():
