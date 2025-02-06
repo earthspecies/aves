@@ -7,6 +7,7 @@ IMPORTANT! This assumes that you have downloaded these two checkpoints:2
 and placed them in the ../aves folder.
 """
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,14 @@ import numpy as np
 import torch
 
 from aves import AvesClassifier, AvesOnnxModel, load_feature_extractor
+
+# first check if the checkpoints are downloaded
+assert (
+    Path("aves") / "birdaves-biox-large.torchaudio.pt"
+).exists(), "Download the birdaves-biox-large.torchaudio.pt' checkpoint and place it in the 'aves' folder. Check the README for instructions."
+assert (
+    Path("aves") / "birdaves-biox-large.onnx"
+).exists(), "Download the 'birdaves-biox-large.onnx' checkpoint and place it in the 'aves' folder. Check the README for instructions."
 
 
 def test_feature_extractor_loader():
@@ -77,7 +86,7 @@ def test_aves_classifier():
 
 
 def test_aves_onnx():
-    # Initialize an AVES ONNX model
+    # Initialize an AVES ONNX modelshutil.rm
     model = AvesOnnxModel("aves/birdaves-biox-large.onnx")
     # Create two 1-second random sounds
     x = torch.rand(2, 16000, dtype=torch.float32).numpy()
@@ -110,10 +119,14 @@ def test_cli():
     assert p.returncode == 0
     assert b"Processing 2 audio files..." in p.stdout
     assert b"Saving embedding to example_audios/" in p.stdout
-    # check that embdding files are saved
 
+    # check that embdding files are saved
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
     assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
+
+    # remove these files
+    os.remove("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy")
+    os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
 
 
 def test_cli_multiple_layers():
@@ -142,8 +155,8 @@ def test_cli_multiple_layers():
     assert p.returncode == 0
     assert b"Processing 2 audio files..." in p.stdout
     assert b"Saving embedding to example_audios/" in p.stdout
-    # check that embdding files are saved
 
+    # check that embdding files are saved
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
     assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
 
@@ -151,7 +164,11 @@ def test_cli_multiple_layers():
     emb = np.load("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy", allow_pickle=True)
     assert len(emb) == 4
     assert isinstance(emb[0], np.ndarray)
-    assert emb[0].shape == (2, 1049, 768)
+    assert emb[0].shape == (2, 1049, 1024)
+
+    # remove these files
+    os.remove("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy")
+    os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
 
 
 def test_onnx_vs_torchaudio_output():
