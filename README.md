@@ -39,7 +39,11 @@ pip install -e .
 The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
 
 ### TorchAudio
-Download both the parameters and the model config under `TorchAudio version` in [Pretrained models]**Pretrained-models**.
+Download both the parameters and the model config under `TorchAudio version` in the **Pretrained-models** section. You can also run this code in terminal:
+```bash
+wget https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt
+```
+to download the aves-base-bio.pt model. Replace that name with the model you want to download.
 
 #### Running the aves on your audio files
 Aves encodings can be computed from this folder (project root) like so
