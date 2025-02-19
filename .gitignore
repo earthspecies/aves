@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
+.DS_Store
 # Distribution / packaging
 .Python
 build/
@@ -29,7 +30,6 @@ MANIFEST
 # aves
 .ipynb_checkpoints
 *.pt
-*.json
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
