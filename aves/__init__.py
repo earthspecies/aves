@@ -1,15 +1,15 @@
 """AVES package for audio feature extraction."""
 
 from .aves import (
-    AvesTorchaudioWrapper,
-    AvesClassifier,
+    AVESTorchaudioWrapper,
+    AVESClassifier,
     load_feature_extractor,
 )
-from .aves_onnx import AvesOnnxModel
+from .aves_onnx import AVESOnnxModel
 
 __all__ = [
-    "AvesTorchaudioWrapper",
-    "AvesClassifier",
+    "AVESTorchaudioWrapper",
+    "AVESClassifier",
     "load_feature_extractor",
-    "AvesOnnxModel",
+    "AVESOnnxModel",
 ]

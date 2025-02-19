@@ -2,7 +2,7 @@ import numpy as np
 import onnxruntime
 
 
-class AvesOnnxModel:
+class AVESOnnxModel:
     """Wrapper class for ONNX models."""
 
     def __init__(self, model_path: str):
