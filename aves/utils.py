@@ -50,7 +50,7 @@ def save_embedding(embedding: torch.Tensor | list[torch.Tensor], output_file: Pa
     """
 
     if save_as == "pt":
-        torch.save(embedding, output_file)
+        torch.save(embedding, output_file + ".pt")
 
     elif save_as == "npy":
         if isinstance(embedding, list):
@@ -58,6 +58,7 @@ def save_embedding(embedding: torch.Tensor | list[torch.Tensor], output_file: Pa
         else:
             np_embedding = embedding.cpu().numpy()
 
+        # numpy adds extension .npy automatically
         np.save(output_file, np_embedding)
 
     else:
@@ -66,11 +67,28 @@ def save_embedding(embedding: torch.Tensor | list[torch.Tensor], output_file: Pa
     print(f"Saving embedding to {output_file}...")
 
 
-def load_audio(audio_file: str | os.PathLike | Path) -> torch.Tensor:
-    """Load audio file and resample if necessary."""
+def load_audio(audio_file: str | os.PathLike | Path, mono: bool = False, mono_avg: bool = False) -> torch.Tensor:
+    """Load audio file and resample if necessary.
+
+    Args:
+        audio_file (str | os.PathLike | Path): Path to the audio file.
+        mono (bool, optional): Whether to load the audio as mono. Defaults to False.
+            If True, the audio will be converted to mono by averaging the channels.
+        mono_avg (bool, optional): Whether to average the channels for mono conversion. Defaults to False.
+            False = keep the first channel.
+
+    Returns:
+        audio (torch.Tensor): Audio tensor
+    """
     audio, sr = torchaudio.load(audio_file)
     if sr != TARGET_SR:
         resampler = torchaudio.transforms.Resample(sr, TARGET_SR)
         audio = resampler(audio)
+
+    if mono and audio.shape[0] > 1:
+        if mono_avg:
+            audio = audio.mean(dim=0, keepdim=False)
+        else:
+            audio = audio[0]
 
     return audio
