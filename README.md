@@ -1,8 +1,8 @@
 # AVES: Animal Vocalization Encoder based on Self-Supervision
 
-Update (2024-05-06): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
+Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
 
-Update (2024-05-07): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
+Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
 
 Update (2025-02-20): AVES release v0.1.0 as package.
 
@@ -168,12 +168,12 @@ An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*
 Output Tensor shapes are the defined for the following input: Two 1 sec audio clips sampled at 16 KHz (the AVES
 preferred sampling rate). Each layer has the same shape.
 
-| Configuration      | Pretraining data            | Hours     | Output Tensor Shape | TorchAudio version | Onnx version |
-| ------------------ | --------------------------- | --------- | ------------------- | ------------------ | ------------ |
-| AVES-`core`        | FSD50k + AS (core)          | 153       | (2, 49, 768) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
-| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | (2, 49, 768) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
-| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | (2, 49, 768) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
-| AVES-`all`         | `core` + AS/VS (all)        | 5054      | (2, 49, 768) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
+| Configuration      | Pretraining data            | Hours     | TorchAudio version | Onnx version |
+| ------------------ | --------------------------- | --------- | ------------------ | ------------ |
+| AVES-`core`        | FSD50k + AS (core)          | 153       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
+| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
+| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
+| AVES-`all`         | `core` + AS/VS (all)        | 5054      | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
 
 ## Colab Notebooks
 - [Supervised classification task](https://colab.research.google.com/drive/1ZmCyxSXtMVde6L_31OUnZRRWHPIxGamh?usp=sharing)
