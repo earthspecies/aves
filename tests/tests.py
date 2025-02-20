@@ -16,14 +16,6 @@ import torch
 
 from aves import AVESClassifier, AVESOnnxModel, load_feature_extractor
 
-# first check if the checkpoints are downloaded
-assert (Path("aves") / "birdaves-biox-large.torchaudio.pt").exists(), (
-    "Download the birdaves-biox-large.torchaudio.pt' checkpoint and place it in the 'aves' folder. Check the README for instructions."
-)
-assert (Path("aves") / "birdaves-biox-large.onnx").exists(), (
-    "Download the 'birdaves-biox-large.onnx' checkpoint and place it in the 'aves' folder. Check the README for instructions."
-)
-
 
 def test_feature_extractor_loader():
     # Test loading feature extractor
@@ -102,8 +94,6 @@ def test_cli():
             "aves",
             "-c",
             "config/default_cfg_birdaves-biox-large.json",
-            "-m",
-            "aves/birdaves-biox-large.torchaudio.pt",
             "--path_to_audio_dir",
             "example_audios/",
             "--output_dir",
@@ -126,6 +116,11 @@ def test_cli():
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
     assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
 
+    # load one of them
+    emb = np.load("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy", allow_pickle=True)
+    assert isinstance(emb, np.ndarray)
+    assert emb.shape == (2, 1049, 1024)
+
     # remove these files
     os.remove("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy")
     os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
@@ -138,8 +133,6 @@ def test_cli_multiple_layers():
             "aves",
             "-c",
             "config/default_cfg_birdaves-biox-large.json",
-            "-m",
-            "aves/birdaves-biox-large.torchaudio.pt",
             "--path_to_audio_dir",
             "example_audios/",
             "--output_dir",
