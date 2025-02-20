@@ -7,14 +7,58 @@ from .aves import load_feature_extractor
 from .utils import load_audio, parse_audio_file_paths, save_embedding
 
 
+def parse_layers_argument(layers: str) -> list[int] | int | None:
+    """Parse the layers argument from the command line
+
+    Args:
+        layers (str): Layers argument from the command line
+
+    Returns:
+        list[int] | int | None: List of layers to extract features from
+    """
+
+    if layers == "all":
+        return None
+
+    try:
+        layers = int(layers)
+        return layers
+    except ValueError:
+        # not a single integer
+        pass
+
+    # comma separated list ?
+    try:
+        layers = [int(layer) for layer in layers.split(",")]
+        return layers
+    except ValueError:
+        # not a comma separated list
+        pass
+
+    # range ?
+    try:
+        layers = [int(layer) for layer in layers.split("-")]
+        return [i for i in range(layers[0], layers[1] + 1)]
+    except ValueError:
+        raise ValueError("Invalid layers argument, see --help for more information")
+
+
 def main():
     """Run the AVES model on a set of audio file paths"""
 
-    parser = argparse.ArgumentParser(description="Run the AVES model on a set of audio file paths")
+    parser = argparse.ArgumentParser(
+        description="""Run the AVES feature extractor model on a set of audio file paths."""
+    )
 
     parser.add_argument("-c", "--config_path", type=str, required=True, help="Path to the model configuration file")
 
-    parser.add_argument("-m", "--model_path", type=str, required=True, help="Path to the model weights file")
+    parser.add_argument(
+        "-m",
+        "--model_path",
+        type=str,
+        default=None,
+        help="Path to the model weights file. If not provided, will be using the Hubert Model without AVES weights!!",
+    )
 
     parser.add_argument(
         "-a", "--audio_paths", type=str, default=None, nargs="+", help="Paths to the audio files to process"
@@ -36,8 +80,9 @@ def main():
         type=str,
         default="-1",
         help="""Layers to extract features from.
-        You can either say "all" for all layers, or provide a range like "0-3" for layers 0 to 3 (inclusive),
-        or just a single layer like "2" for layer 2, starting at 0.
+        You can either say "all" for all layers, or provide a range like "0-3" for layers 0,1,2,3 (inclusive),
+        or a single layer like "2" for layer 3 (starting from 0), or a comma-separated list like "0,2,4"
+        for layers 0, 2, and 4.
         Default is the last layer ("-1").
         """,
     )
@@ -55,7 +100,9 @@ def main():
 
     args = parser.parse_args()
 
-    print("Loading AVES model...")
+    if not args.model_path:
+        print("---CAUTION: Running the model without AVES weights!!---")
+
     model = load_feature_extractor(args.config_path, args.model_path, args.device, for_inference=True)
 
     # if audio_dir fetch all audio files in the directory with extention audio_file_extension
@@ -66,16 +113,7 @@ def main():
         audio_files = [Path(audio_path) for audio_path in args.audio_paths]
 
     # parse layers argument
-    if args.layers == "all":
-        layers = None
-    elif args.layers[0] == "-":
-        layers = int(args.layers)
-    else:
-        layers = [int(layer) for layer in args.layers.split("-")]
-        if len(layers) == 1:
-            layers = layers[0]
-        else:
-            layers = [i for i in range(layers[0], layers[1] + 1)]
+    layers = parse_layers_argument(args.layers)
 
     print(f"Processing {len(audio_files)} audio files...")
     for audio_file in audio_files:
