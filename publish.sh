@@ -13,10 +13,10 @@ twine check dist/*
 
 # Upload to TestPyPI first (recommended for testing)
 echo "Uploading to TestPyPI..."
-twine upload --repository testpypi dist/*
+twine upload --repository testpypi dist/* --verbose
 
 echo "Testing installation from TestPyPI..."
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ aves
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ esp-aves
 
 # If testing is successful, upload to the real PyPI
 read -p "Do you want to publish to PyPI? (y/n) " -n 1 -r

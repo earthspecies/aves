@@ -27,7 +27,7 @@ conda activate aves
 
 ### Install from pip
 ```
-pip install aves
+pip install esp-aves
 ```
 ### Install from source
 Clone this repository:
