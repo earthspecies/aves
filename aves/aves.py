@@ -118,6 +118,7 @@ class AVESClassifier(nn.Module):
 
         device = "cuda" if torch.cuda.is_available() and device == "cuda" else "cpu"
         self.device = device  # you still have to move the model to the device you want to use
+        self.head.to(device)
 
         if freeze_feature_extractor:
             print("Freezing feature extractor, it will NOT be updated during training!")
@@ -146,8 +147,8 @@ if __name__ == "__main__":
     # Initialize an AVES classifier with 10 target classes
     print("Initializing AVES classifier to CPU...")
     model = AVESClassifier(
-        config_path="../config/birdaves-biox-large.json",  # "./aves_all.json",
-        model_path="birdaves-biox-large.torchaudio.pt",  # ./aves-base-all.torchaudio.pt",
+        config_path="../config/birdaves-biox-large.json",
+        model_path="birdaves-biox-large.torchaudio.pt",
         num_classes=10,
         for_inference=True,
         freeze_feature_extractor=True,
@@ -155,7 +156,7 @@ if __name__ == "__main__":
     )
 
     print("Running forward pass...")
-    # Create a 1-second random sound
+    # Create a batch of 2 1-second random sound
     x = torch.rand(2, 16000)
     y = torch.tensor([0, 1])
 
