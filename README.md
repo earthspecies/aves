@@ -4,7 +4,7 @@ Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES 
 
 Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
 
-Update (2025-02-20): AVES release v0.1.0 as package.
+Update (2025-02-22): AVES release v0.1.2 as package.
 
 ## What is AVES?
 
