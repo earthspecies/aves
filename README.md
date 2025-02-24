@@ -64,9 +64,7 @@ What you need to input are 4 things:
 Output embeddings can be saved as torch tensors (--save_as "pt") or numpy arrays (--save_as "npy")
 
 #### Running tests
-To run tests you must first:
-1. Download the models specified in tests.py to the ./aves module folder.
-2. Run tests from the root folder ```pytest tests/```
+To run tests, from the root folder run ```pytest tests/```
 
 #### AVES feature extraction examples
 These examples are based on the torchaudio version of the model weights.
