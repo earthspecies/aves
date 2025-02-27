@@ -4,7 +4,7 @@ Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES 
 
 Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
 
-Update (2025-02-22): AVES release v0.1.2 as package.
+Update (2025-02-22): AVES release v0.1.2 as a package.
 
 ## What is AVES?
 
@@ -48,17 +48,17 @@ Download both the parameters and the model config under `TorchAudio version` in 
 ```bash
 wget https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt
 ```
-to download the aves-base-bio.pt model. Replace that name with the model you want to download.
+to download the aves-base-bio.pt model. Replace the filename to download the desired model.
 
-#### Running the aves on your audio files
-AVES encodings can be computed from this folder (project root) like so
+#### Running AVES on Audio Files
+AVES encodings can be computed with the following command:
 ```
 aves -c /path/to/your/config.json -m /path/to/model.pt --path_to_audio_dir ./example_audios/ --output_dir /path/to/save/embeddings/
 ```
 What you need to input are 4 things:
 1. The model config (see below, right click and "Save link as").
 2. The model file (see below, click to download the model corresponding to the config you saved).
-3. Path to a directory containing audio files (or individual paths --audio_file_paths parameter in aves/__main__.py)
+3. Path to a directory containing audio files (or specify individual files using `--audio_paths` parameter)
 4. Path to save the embeddings for each file (--output_dir parameter)
 
 Output embeddings can be saved as torch tensors (--save_as "pt") or numpy arrays (--save_as "npy")
@@ -84,48 +84,49 @@ Loading the feature extractor is done simply with this helper function.
 
 Inference on audio files:
 ```python
-    # let's load the audio in the examples folder
+    # Load audio files from the example folder
     from aves.utils import parse_audio_file_paths, load_audio
-    # get their paths
+    # Retrieve file paths
     audio_file_paths = parse_audio_file_paths("./example_audios/")
     print(audio_file_paths)
-    # load and resample with torchaudio to 16 KHz
-    # we will make a mono audio by keeping the first channel
+
+    # Load and resample audio to 16 kHz
+    # Convert to mono by keeping only the first channel
     audios = [load_audio(f, mono=True, mono_avg=False) for f in audio_file_paths]
-    # the audios are torch.Tensors, each one of shape (num samples, )
+    # The loaded audio is stored as torch.Tensors, each of shape (num_samples,)
     print(audios[0].shape)
 
-    # durations of loaded audio
+    # Compute durations of loaded audio in seconds
     durations = [len(a) / 16000 for a in audios]
     print(durations)
 
-    # get the last layer features
-    # IMPORTANT: a batch dim is added per default in the extract_features method.
+    # Extract features from the last layer
+    # IMPORTANT: The extract_features method automatically adds a batch dimension.
     features = [model.extract_features(audio, layers=-1) for audio in audios]
-    print(features[0]) # (batch, seq len, embed dim)
-    # torch.Size([1, 7244, 768]) 
+    print(features[0])   # Shape: (batch, sequence_length, embedding_dim)
+    # Example output shape: torch.Size([1, 7244, 768])
 
-    # The sequence dimension (2nd dim) is time. AVES compresses time, so 1 sec of 16 KHz
-    # audio = 49 steps. You can check this:
-    print(int(features[0][1] // durations[0]))
-    # 49
+    # The sequence dimension (2nd dim) corresponds to time.
+    # AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
+    print(int(features[0][1] // durations[0]))  # Output: 49
 
-    # get all layers
+    # Extract features from all layers
     features = [model.extract_features(audio, layers=None) for audio in audios]
-    # outputs are lists of length 12 for each of the inputs because AVES-all has 12 layers
+    # AVES-all has 12 layers, so the output list length should be 12
     assert(len(features[0]) == 12)
     print(features[0][0].shape)
-    # torch.Size([1, 7244, 768])
+    # Example output shape: torch.Size([1, 7244, 768])
 
-    # get first and second-to-last layer
+    # Extract features from the first and second-to-last layers
     features = [model.extract_features(audio, layers=[0, -2]) for audio in audios]
-    # outputs are lists of length 12 for each of the inputs because AVES-all has 12 layers
+    # Expecting two layers in the output
     assert(len(features[0]) == 2)
     print(features[0][0].shape)
-    # torch.Size([1, 7244, 768])
+# Example output shape: torch.Size([1, 7244, 768])
 ```
-#### Using aves as a classifier
-An example implementation for an AVES based classifier is provided in aves/aves.py *AVESClassifier*. This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
+
+#### Using AVES as a classifier
+An example implementation for an AVES-based classifier is provided in `aves/aves.py` *AVESClassifier*. This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
 
 Example code for testing this is also provided in the same file.
 

@@ -40,7 +40,7 @@ class AVESTorchaudioWrapper(nn.Module):
         """
         out = self.model.extract_features(inputs)[0]
 
-        if layers and isinstance(layers, int):
+        if layers is not None and isinstance(layers, int):
             return out[layers]
 
         if layers and isinstance(layers, list):
