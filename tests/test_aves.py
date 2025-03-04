@@ -78,7 +78,11 @@ def test_aves_classifier():
 
 
 def test_aves_onnx():
-    # Initialize an AVES ONNX modelshutil.rm
+    # Initialize an AVES ONNX model
+    # check if the model is downloaded
+    if not Path("aves/birdaves-biox-large.onnx").exists():
+        print("Please download the birdaves-biox-large.onnx model file to the aves/ folder, skipping test...")
+        return
     model = AVESOnnxModel("aves/birdaves-biox-large.onnx")
     # Create two 1-second random sounds
     x = torch.rand(2, 16000, dtype=torch.float32).numpy()
@@ -160,6 +164,48 @@ def test_cli_multiple_layers():
     # load one of them
     emb = np.load("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy", allow_pickle=True)
     assert len(emb) == 4
+    assert isinstance(emb[0], np.ndarray)
+    assert emb[0].shape == (2, 1049, 1024)
+
+    # remove these files
+    os.remove("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy")
+    os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
+
+
+def test_cli_multiple_layers_2():
+    # Test the AVES CLI
+    p = subprocess.run(
+        [
+            "aves",
+            "-c",
+            "config/default_cfg_birdaves-biox-large.json",
+            "--path_to_audio_dir",
+            "example_audios/",
+            "--output_dir",
+            "example_audios/",
+            "--layers",
+            "0,1,11",
+            "--save_as",
+            "npy",
+            "--device",
+            "cpu",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+
+    assert p.returncode == 0
+    assert b"Processing 2 audio files..." in p.stdout
+    assert b"Saving embedding to example_audios/" in p.stdout
+
+    # check that embdding files are saved
+    assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
+    assert (Path("example_audios") / "XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy").exists()
+
+    # load one of them
+    emb = np.load("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy", allow_pickle=True)
+    assert len(emb) == 3
     assert isinstance(emb[0], np.ndarray)
     assert emb[0].shape == (2, 1049, 1024)
 
