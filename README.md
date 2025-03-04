@@ -6,6 +6,8 @@ Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-
 
 Update (2025-02-22): AVES release v0.1.2 as a package.
 
+Update (2025-03-04): AVES package v0.1.3, bug fixes and more tests.
+
 ## What is AVES?
 
 ![](./fig_aves.png)
@@ -64,7 +66,8 @@ What you need to input are 4 things:
 Output embeddings can be saved as torch tensors (--save_as "pt") or numpy arrays (--save_as "npy")
 
 #### Running tests
-To run tests, from the root folder run ```pytest tests/```
+To run tests, from the root folder run ```pytest tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in the ./aves folder. If the model file is not found,
+this test will be skipped.
 
 #### AVES feature extraction examples
 These examples are based on the torchaudio version of the model weights.
