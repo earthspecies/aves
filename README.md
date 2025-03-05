@@ -43,17 +43,19 @@ cd into the repo root folder and install the package:
 pip install -e .
 ```
 ## Ported versions
-The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
+The original model uses Fairseq models. We have ported the models to TorchAudio models and ONNX formats.
 
 ### TorchAudio
-Download both the parameters and the model config under `TorchAudio version` in the **Pretrained-models** section. You can also run this code in terminal:
+Download both the model and the model config under "TorchAudio version" in the [Pretrained models](#pretrained-models) section. You can also run this code in terminal:
+
 ```bash
 wget https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt
 ```
-to download the aves-base-bio.pt model. Replace the filename to download the desired model.
+
+to download the `aves-base-bio.pt` model. Replace the filename to download the desired model.
 
 #### Running AVES on Audio Files
-AVES encodings can be computed with the following command:
+AVES embeddings can be computed with the following command:
 ```
 aves -c /path/to/your/config.json -m /path/to/model.pt --path_to_audio_dir ./example_audios/ --output_dir /path/to/save/embeddings/
 ```
@@ -61,97 +63,96 @@ What you need to input are 4 things:
 1. The model config (see below, right click and "Save link as").
 2. The model file (see below, click to download the model corresponding to the config you saved).
 3. Path to a directory containing audio files (or specify individual files using `--audio_paths` parameter)
-4. Path to save the embeddings for each file (--output_dir parameter)
+4. Path to save the embeddings for each file (`--output_dir` parameter)
 
-Output embeddings can be saved as torch tensors (--save_as "pt") or numpy arrays (--save_as "npy")
+Output embeddings can be saved as torch tensors (`--save_as pt`) or numpy arrays (`--save_as npy`)
 
 #### Running tests
-To run tests, from the root folder run ```pytest tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in the ./aves folder. If the model file is not found,
-this test will be skipped.
+To run tests, from the root folder run ```pytest tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in the ./aves folder. If the model file is not found, this test will be skipped.
 
 #### AVES feature extraction examples
 These examples are based on the torchaudio version of the model weights.
 
 Loading the feature extractor is done simply with this helper function.
 ```python
-    from aves import load_feature_extractor
+from aves import load_feature_extractor
 
-    # download the config and the torch model file
-    # here, config is stored in config/ and the model was put in aves/
-    model = load_feature_extractor(
-        config_path="./config/default_cfg_aves-base-all.json",
-        model_path="./aves/aves-base-all.torchaudio.pt",
-        device="cpu",
-        for_inference=True)  # for_inference sets model.eval()
+# download the config and the torch model file
+# here, config is stored in config/ and the model was put in aves/
+model = load_feature_extractor(
+    config_path="./config/default_cfg_aves-base-all.json",
+    model_path="./aves/aves-base-all.torchaudio.pt",
+    device="cpu",
+    for_inference=True)  # for_inference sets model.eval()
 ```
 
 Inference on audio files:
 ```python
-    # Load audio files from the example folder
-    from aves.utils import parse_audio_file_paths, load_audio
-    # Retrieve file paths
-    audio_file_paths = parse_audio_file_paths("./example_audios/")
-    print(audio_file_paths)
+# Load audio files from the example folder
+from aves.utils import parse_audio_file_paths, load_audio
+# Retrieve file paths
+audio_file_paths = parse_audio_file_paths("./example_audios/")
+print(audio_file_paths)
 
-    # Load and resample audio to 16 kHz
-    # Convert to mono by keeping only the first channel
-    audios = [load_audio(f, mono=True, mono_avg=False) for f in audio_file_paths]
-    # The loaded audio is stored as torch.Tensors, each of shape (num_samples,)
-    print(audios[0].shape)
+# Load and resample audio to 16 kHz
+# Convert to mono by keeping only the first channel
+audios = [load_audio(f, mono=True, mono_avg=False) for f in audio_file_paths]
+# The loaded audio is stored as torch.Tensors, each of shape (num_samples,)
+print(audios[0].shape)
 
-    # Compute durations of loaded audio in seconds
-    durations = [len(a) / 16000 for a in audios]
-    print(durations)
+# Compute durations of loaded audio in seconds
+durations = [len(a) / 16000 for a in audios]
+print(durations)
 
-    # Extract features from the last layer
-    # IMPORTANT: The extract_features method automatically adds a batch dimension.
-    features = [model.extract_features(audio, layers=-1) for audio in audios]
-    print(features[0])   # Shape: (batch, sequence_length, embedding_dim)
-    # Example output shape: torch.Size([1, 7244, 768])
+# Extract features from the last layer
+# IMPORTANT: The extract_features method automatically adds a batch dimension.
+features = [model.extract_features(audio, layers=-1) for audio in audios]
+print(features[0])   # Shape: (batch, sequence_length, embedding_dim)
+# Example output shape: torch.Size([1, 7244, 768])
 
-    # The sequence dimension (2nd dim) corresponds to time.
-    # AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
-    print(int(features[0][1] // durations[0]))  # Output: 49
+# The sequence dimension (2nd dim) corresponds to time.
+# AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
+print(int(features[0][1] // durations[0]))  # Output: 49
 
-    # Extract features from all layers
-    features = [model.extract_features(audio, layers=None) for audio in audios]
-    # AVES-all has 12 layers, so the output list length should be 12
-    assert(len(features[0]) == 12)
-    print(features[0][0].shape)
-    # Example output shape: torch.Size([1, 7244, 768])
+# Extract features from all layers
+features = [model.extract_features(audio, layers=None) for audio in audios]
+# AVES-all has 12 layers, so the output list length should be 12
+assert(len(features[0]) == 12)
+print(features[0][0].shape)
+# Example output shape: torch.Size([1, 7244, 768])
 
-    # Extract features from the first and second-to-last layers
-    features = [model.extract_features(audio, layers=[0, -2]) for audio in audios]
-    # Expecting two layers in the output
-    assert(len(features[0]) == 2)
-    print(features[0][0].shape)
+# Extract features from the first and second-to-last layers
+features = [model.extract_features(audio, layers=[0, -2]) for audio in audios]
+# Expecting two layers in the output
+assert(len(features[0]) == 2)
+print(features[0][0].shape)
 # Example output shape: torch.Size([1, 7244, 768])
 ```
 
 #### Using AVES as a classifier
-An example implementation for an AVES-based classifier is provided in `aves/aves.py` *AVESClassifier*. This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
+An example implementation for an AVES-based classifier is provided in `aves/aves.py` (`AVESClassifier`). This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
 
 Example code for testing this is also provided in the same file.
 
-### Onnx
-Download the parameters and the model config under `Onnx version` in **Pretrained-models**.
-> NOTE: We observed that the Onnx version of AVES-`all` and BirdAVES could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem. When possible, use the TorchAudio version of the model.
+### ONNX
+Download the parameters and the model config under "ONNX version" in [Pretrained models](#pretrained-models).
+> NOTE: We observed that the ONNX version of AVES-`all` and BirdAVES could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem. When possible, use the TorchAudio version of the model.
 
 An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*. 
-> NOTE: Onnx models accept float32 numpy arrays as input and provide numpy arrays as outputs.
+> NOTE: ONNX models accept float32 numpy arrays as input and provide numpy arrays as outputs.
 
 ```python
-    from aves.aves_onnx import AVESOnnxModel
+from aves.aves_onnx import AVESOnnxModel
 
-    # example with BirdAVES large
-    model_path = "/path/to/birdaves-bioxn-large.onnx"
-    model = AVESOnnxModel(model_path)
+# example with BirdAVES large
+model_path = "/path/to/birdaves-bioxn-large.onnx"
+model = AVESOnnxModel(model_path)
 
-    # create random inputs for testing, 
-    # e.g. a batch of 2 audio files sampled at 16 KHz duration of 1 sec
-    inputs = np.random.randn(2, 16000).astype("float32")  # float64 doesn't work
-    onnx_out = model(inputs)
-    assert onnx_out.shape == (2, 49, 1024)  # embedding size is 1024 for birdaves large, dim 1 is time dimension
+# create random inputs for testing, 
+# e.g. a batch of 2 audio files sampled at 16 KHz duration of 1 sec
+inputs = np.random.randn(2, 16000).astype("float32")  # float64 doesn't work
+onnx_out = model(inputs)
+assert onnx_out.shape == (2, 49, 1024)  # embedding size is 1024 for BirdAVES large, dim 1 is time dimension
 ```
 
 ## Embedding dimensions
@@ -167,15 +168,13 @@ An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*
 | BirdAVES-bion-large | 1024 |
 
 ## Pretrained models
-Output Tensor shapes are the defined for the following input: Two 1 sec audio clips sampled at 16 KHz (the AVES
-preferred sampling rate). Each layer has the same shape.
 
-| Configuration      | Pretraining data            | Hours     | TorchAudio version | Onnx version |
+| Configuration      | Pretraining data            | Hours     | TorchAudio version | ONNX version |
 | ------------------ | --------------------------- | --------- | ------------------ | ------------ |
-| AVES-`core`        | FSD50k + AS (core)          | 153       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
-| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
-| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
-| AVES-`all`         | `core` + AS/VS (all)        | 5054      | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
+| AVES-`core`        | FSD50k + AS (core)          | 153       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
+| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
+| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
+| AVES-`all`         | `core` + AS/VS (all)        | 5054      | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
 
 ## Colab Notebooks
 - [Supervised classification task](https://colab.research.google.com/drive/1ZmCyxSXtMVde6L_31OUnZRRWHPIxGamh?usp=sharing)
