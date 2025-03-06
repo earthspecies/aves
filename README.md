@@ -68,7 +68,7 @@ What you need to input are 4 things:
 Output embeddings can be saved as torch tensors (`--save_as pt`) or numpy arrays (`--save_as npy`)
 
 #### Running tests
-To run tests, from the root folder run ```pytest tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in the ./aves folder. If the model file is not found, this test will be skipped.
+To run tests, from the root folder run ```pytest -v -s tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in a ./models folder in the repo root folder. If the model file is not found, this test will be skipped.
 
 #### AVES feature extraction examples
 These examples are based on the torchaudio version of the model weights.
@@ -78,10 +78,10 @@ Loading the feature extractor is done simply with this helper function.
 from aves import load_feature_extractor
 
 # download the config and the torch model file
-# here, config is stored in config/ and the model was put in aves/
+# here, config is stored in config/ and the model was put in models/
 model = load_feature_extractor(
     config_path="./config/default_cfg_aves-base-all.json",
-    model_path="./aves/aves-base-all.torchaudio.pt",
+    model_path="./models/aves-base-all.torchaudio.pt",
     device="cpu",
     for_inference=True)  # for_inference sets model.eval()
 ```
