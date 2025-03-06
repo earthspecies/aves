@@ -1,10 +1,9 @@
 """Unit tests for the aves package.
 
-IMPORTANT! This assumes that you have downloaded these two checkpoints:2
-1. birdaves-biox-large.torchaudio.pt
-2. birdaves-biox-large.onnx
+IMPORTANT! This assumes that you have downloaded the checkpoint:
+1. birdaves-biox-large.onnx
 
-and placed them in the ../aves folder.
+and placed them in the ../models folder.
 """
 
 import os
@@ -57,7 +56,7 @@ def test_aves_classifier():
     print("Initializing AVES classifier...")
     model = AVESClassifier(
         config_path="config/default_cfg_birdaves-biox-large.json",
-        model_path="aves/birdaves-biox-large.torchaudio.pt",
+        model_path=None,
         num_classes=10,
         for_inference=True,
         freeze_feature_extractor=True,
@@ -80,8 +79,8 @@ def test_aves_classifier():
 def test_aves_onnx():
     # Initialize an AVES ONNX model
     # check if the model is downloaded
-    if not Path("aves/birdaves-biox-large.onnx").exists():
-        print("Please download the birdaves-biox-large.onnx model file to the aves/ folder, skipping test...")
+    if not Path("models/birdaves-biox-large.onnx").exists():
+        print("Please download the birdaves-biox-large.onnx model file to the models/ folder, skipping test...")
         return
     model = AVESOnnxModel("aves/birdaves-biox-large.onnx")
     # Create two 1-second random sounds
