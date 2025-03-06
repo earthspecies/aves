@@ -82,6 +82,7 @@ def load_audio(audio_file: str | os.PathLike | Path, mono: bool = False, mono_av
     """
     audio, sr = torchaudio.load(audio_file)
     if sr != TARGET_SR:
+        print(f"CAUTION: Resampling audio from {sr} to {TARGET_SR} required by AVES models...")
         resampler = torchaudio.transforms.Resample(sr, TARGET_SR)
         audio = resampler(audio)
 
