@@ -20,7 +20,7 @@ class AVESTorchaudioWrapper(nn.Module):
 
         self.config = load_config(str(config_path))
 
-        print("Loading Hubert model (without AVES weights)...")
+        print("Initializing HuBERT model...")
         self.model = wav2vec2_model(**self.config, aux_num_out=None)
         if model_path is not None:
             print("Loading AVES model weights from", model_path)

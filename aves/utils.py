@@ -1,4 +1,4 @@
-"""Utility functions for Aves."""
+"""Utility functions for AVES."""
 
 import os
 from pathlib import Path
@@ -8,7 +8,7 @@ import torch
 import torchaudio
 
 ALLOWED_AUDIO_FILE_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "m4a"]
-TARGET_SR = 16000  # Aves works with 16kHz audio
+TARGET_SR = 16000  # AVES works with 16kHz audio
 
 
 def parse_audio_file_paths(audio_dir: str, audio_file_extension: str | None = None) -> list[Path]:
