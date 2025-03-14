@@ -1,4 +1,4 @@
-"""AVES: Audio and Visual Event Detection with Self-supervised learning"""
+"""AVES: Animal Vocalization Encoder based on Self-supervision"""
 
 import json
 from pathlib import Path
@@ -15,6 +15,14 @@ def load_config(config_path: str) -> dict:
 
 
 class AVESTorchaudioWrapper(nn.Module):
+    """Wrapper for the AVES feature extractor model
+
+    Args:
+        config_path (str | Path): Path to the model configuration file
+        model_path (str | Path): Path to the model weights file
+        device (str, optional): Device to run the model on. Defaults to "cuda".
+    """
+
     def __init__(self, config_path: str | Path, model_path: str | Path = None, device: str = "cuda"):
         super().__init__()
 
@@ -34,6 +42,7 @@ class AVESTorchaudioWrapper(nn.Module):
         Args:
             inputs (torch.Tensor): Input tensor
             layers (list[int] | int | None, optional): Layer(s) to extract features from. Defaults to -1 (last layer).
+                If None, returns all layers.
 
         Returns:
             torch.Tensor | list[torch.Tensor]: Output tensor(s) from the model

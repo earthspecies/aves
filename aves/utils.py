@@ -9,6 +9,7 @@ import torchaudio
 
 ALLOWED_AUDIO_FILE_EXTENSIONS = ["wav", "mp3", "flac", "ogg", "m4a"]
 TARGET_SR = 16000  # AVES works with 16kHz audio
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def parse_audio_file_paths(audio_dir: str, audio_file_extension: str | None = None) -> list[Path]:

@@ -4,17 +4,23 @@ import argparse
 from pathlib import Path
 
 from .aves import load_feature_extractor
-from .utils import load_audio, parse_audio_file_paths, save_embedding
+from .utils import load_audio, parse_audio_file_paths, save_embedding, DEFAULT_DEVICE
+
+MAX_LAYERS = 24  # Maximum number of layers in the large models
 
 
 def parse_layers_argument(layers: str) -> list[int] | int | None:
     """Parse the layers argument from the command line
 
-    Args:
-        layers (str): Layers argument from the command line
+    Arguments
+    ---------
+    layers: str
+        Layers argument from the command line
 
-    Returns:
-        list[int] | int | None: List of layers to extract features from
+    Returns
+    -------
+    list[int] | int | None
+        List of layers to extract features from. If None, extract from all layers.
     """
 
     if layers == "all":
@@ -22,6 +28,8 @@ def parse_layers_argument(layers: str) -> list[int] | int | None:
 
     try:
         layers = int(layers)
+        if layers >= MAX_LAYERS or layers < -MAX_LAYERS:
+            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
         return layers
     except ValueError:
         # not a single integer
@@ -30,6 +38,8 @@ def parse_layers_argument(layers: str) -> list[int] | int | None:
     # comma separated list ?
     try:
         layers = [int(layer) for layer in layers.split(",")]
+        if any(layer >= MAX_LAYERS or layer < -MAX_LAYERS for layer in layers):
+            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
         return layers
     except ValueError:
         # not a comma separated list
@@ -38,7 +48,10 @@ def parse_layers_argument(layers: str) -> list[int] | int | None:
     # range ?
     try:
         layers = [int(layer) for layer in layers.split("-")]
-        return [i for i in range(layers[0], layers[1] + 1)]
+        layers = [i for i in range(layers[0], layers[1] + 1)]
+        if any(layer >= MAX_LAYERS or layer < -MAX_LAYERS for layer in layers):
+            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
+        return layers
     except ValueError:
         raise ValueError("Invalid layers argument, see --help for more information")
 
@@ -128,6 +141,8 @@ def main():
 
     # parse layers argument
     layers = parse_layers_argument(args.layers)
+
+    args.device = "cuda" if args.device == "cuda" and DEFAULT_DEVICE == "cuda" else "cpu"
 
     print(f"Processing {len(audio_files)} audio files...")
     for audio_file in audio_files:
