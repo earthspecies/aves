@@ -87,6 +87,20 @@ def main():
         """,
     )
 
+    parser.add_argument(
+        "--mono",
+        action="store_true",
+        help="""Convert the audio to mono channel before processing.
+        Default is False. If False, stereo audio will be processed as a batch of 2 channels. "
+        The output embedding will reflect this in its first dimension.""",
+    )
+
+    parser.add_argument(
+        "--mono_avg",
+        action="store_true",
+        help="""If converting to mono, average the channels. Default is False, which keeps the first channel.""",
+    )
+
     parser.add_argument("--device", type=str, default="cuda", help="Device to run the model on (default: cuda)")
 
     parser.add_argument("--output_dir", type=str, default=".", help="Directory to save the output embedding files")
@@ -119,6 +133,6 @@ def main():
     for audio_file in audio_files:
         print(f"==== Processing {audio_file} ====")
 
-        audio = load_audio(audio_file)
+        audio = load_audio(audio_file, args.mono, args.mono_avg)
         embedding = model.extract_features(audio.to(args.device), layers)
         save_embedding(embedding, Path(args.output_dir) / f"{audio_file.stem}.embedding", args.save_as)

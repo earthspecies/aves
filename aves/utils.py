@@ -50,7 +50,7 @@ def save_embedding(embedding: torch.Tensor | list[torch.Tensor], output_file: Pa
     """
 
     if save_as == "pt":
-        torch.save(embedding, output_file + ".pt")
+        torch.save(embedding, str(output_file) + ".pt")
 
     elif save_as == "npy":
         if isinstance(embedding, list):
@@ -86,10 +86,15 @@ def load_audio(audio_file: str | os.PathLike | Path, mono: bool = False, mono_av
         resampler = torchaudio.transforms.Resample(sr, TARGET_SR)
         audio = resampler(audio)
 
-    if mono and audio.shape[0] > 1:
-        if mono_avg:
-            audio = audio.mean(dim=0, keepdim=False)
-        else:
-            audio = audio[0]
+    if mono and audio.ndim > 1:
+        if audio.shape[0] > 1:
+            # stereo or more channels
+            if mono_avg:
+                audio = audio.mean(dim=0, keepdim=False)
+            else:
+                audio = audio[0]
+
+    # AVES models expect (C, N) shape. Stereo audio is (2, N).
+    # else its (1, N) and if (N,) a single channel dim will be added as batch dimension by AVES
 
     return audio
