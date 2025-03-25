@@ -1,59 +1,53 @@
-"""Main entry point for the aves package."""
+"""Main entry point for the aves package.
+
+Usage:
+    aves -c <config_path> \
+    -m <model_path> \
+    --audio_paths <audio_paths> \
+    --layers <layers> \
+    --output_dir <output_dir> \
+    --save_as <save_as> --device <device> --mono --mono_avg
+
+Example:
+    aves -c config/default_cfg_birdaves-biox-large.json \
+    -m birdaves-biox-large.pt \
+    --audio_paths example_audios/XC448414.wav example_audios/XC936872.wav \
+    --layers all \
+    --output_dir example_audios/ \
+    --save_as npy --device cpu --mono --mono_avg
+"""
 
 import argparse
+import logging
 from pathlib import Path
 
 from .aves import load_feature_extractor
-from .utils import load_audio, parse_audio_file_paths, save_embedding, DEFAULT_DEVICE
+from .utils import load_audio, parse_audio_file_paths, save_embedding, parse_layers_argument, DEFAULT_DEVICE
 
+# setup logging
+logger = logging.getLogger("aves")
 MAX_LAYERS = 24  # Maximum number of layers in the large models
 
 
-def parse_layers_argument(layers: str) -> list[int] | int | None:
-    """Parse the layers argument from the command line
+def setup_logging(level=logging.INFO):
+    """Configure the aves logger if not already configured.
+
+    This only configures the logger if no handlers are already present,
+    ensuring we don't interfere with client application logging.
 
     Arguments
     ---------
-    layers: str
-        Layers argument from the command line
-
-    Returns
-    -------
-    list[int] | int | None
-        List of layers to extract features from. If None, extract from all layers.
+    level: int
+        Logging level to set, defaults to logging.INFO
     """
-
-    if layers == "all":
-        return None
-
-    try:
-        layers = int(layers)
-        if layers >= MAX_LAYERS or layers < -MAX_LAYERS:
-            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
-        return layers
-    except ValueError:
-        # not a single integer
-        pass
-
-    # comma separated list ?
-    try:
-        layers = [int(layer) for layer in layers.split(",")]
-        if any(layer >= MAX_LAYERS or layer < -MAX_LAYERS for layer in layers):
-            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
-        return layers
-    except ValueError:
-        # not a comma separated list
-        pass
-
-    # range ?
-    try:
-        layers = [int(layer) for layer in layers.split("-")]
-        layers = [i for i in range(layers[0], layers[1] + 1)]
-        if any(layer >= MAX_LAYERS or layer < -MAX_LAYERS for layer in layers):
-            raise ValueError(f"Layer number should be between -{MAX_LAYERS} and {MAX_LAYERS - 1}")
-        return layers
-    except ValueError:
-        raise ValueError("Invalid layers argument, see --help for more information")
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(level)
+        # Don't propagate to root logger
+        logger.propagate = False
 
 
 def main():
@@ -70,7 +64,7 @@ def main():
         "--model_path",
         type=str,
         default=None,
-        help="Path to the model weights file. If not provided, will be using the Hubert Model without AVES weights!!",
+        help="Path to the model weights file. If not provided, will be using the Hubert Model without AVES weights.",
     )
 
     parser.add_argument(
@@ -111,7 +105,7 @@ def main():
     parser.add_argument(
         "--mono_avg",
         action="store_true",
-        help="""If converting to mono, average the channels. Default is False, which keeps the first channel.""",
+        help="""If converting from stereo to mono, average the channels. Default is False, which keeps the first channel.""",
     )
 
     parser.add_argument("--device", type=str, default="cuda", help="Device to run the model on (default: cuda)")
@@ -128,7 +122,18 @@ def main():
     args = parser.parse_args()
 
     if not args.model_path:
-        print("---CAUTION: Running the model without AVES weights!!---")
+        logger.warning(
+            """!!CAUTION: Running the model without AVES weights!!
+            If you want to use AVES weights, provide the model_path argument
+            with the path to the AVES weights file."""
+        )
+
+    # check that the only the "pt" model file extension is supported
+    if args.model_path and Path(args.model_path).suffix != ".pt":
+        raise ValueError(
+            """Only .pt torchaudio model files are currently supported in AVES cli.
+            If you are looking to run the .onnx model, please use the AVESOnnxModel class directly."""
+        )
 
     model = load_feature_extractor(args.config_path, args.model_path, args.device, for_inference=True)
 
@@ -136,17 +141,19 @@ def main():
     if args.audio_paths is None:
         assert args.path_to_audio_dir is not None, "Either audio_paths or path_to_audio_dir must be provided"
         audio_files = parse_audio_file_paths(args.path_to_audio_dir, args.audio_file_extension)
+        if not audio_files:
+            raise ValueError(f"No audio files found in {args.path_to_audio_dir}")
     else:
         audio_files = [Path(audio_path) for audio_path in args.audio_paths]
 
     # parse layers argument
-    layers = parse_layers_argument(args.layers)
+    layers = parse_layers_argument(args.layers, MAX_LAYERS)
 
     args.device = "cuda" if args.device == "cuda" and DEFAULT_DEVICE == "cuda" else "cpu"
 
     print(f"Processing {len(audio_files)} audio files...")
     for audio_file in audio_files:
-        print(f"==== Processing {audio_file} ====")
+        logger.info(f"==== Embedding {audio_file} ====")
 
         audio = load_audio(audio_file, args.mono, args.mono_avg)
         embedding = model.extract_features(audio.to(args.device), layers)
