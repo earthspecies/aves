@@ -2,9 +2,9 @@
 set -e
 
 # Clean previous builds
-rm -rf dist/
-rm -rf build/
-rm -rf *.egg-info
+rm -rf ../dist/
+rm -rf ../build/
+rm -rf ../*.egg-info
 
 # Create source distribution
 python -m build --sdist

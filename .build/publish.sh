@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
-
+cd ..
 # Ensure build dependencies are installed
 pip install --upgrade pip
 pip install --upgrade build twine
 
 # Clean and build
-./build.sh
+.build/build.sh
 
 # Check the distribution
 twine check dist/*
