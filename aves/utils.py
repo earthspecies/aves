@@ -73,6 +73,7 @@ def save_embedding(embedding: torch.Tensor | list[torch.Tensor], output_path: st
     >>> save_embedding(embedding, Path("embedding"), "pt")
     >>> import pathlib; pathlib.Path("embedding.pt").exists()
     True
+    >>> pathlib.Path("embedding.pt").unlink()
     """
     if isinstance(output_path, Path):
         output_path = str(output_path)
@@ -160,6 +161,8 @@ def parse_layers_argument(layers: str, max_layers: int = 24) -> list[int] | int 
     True
     >>> parse_layers_argument("0")
     0
+    >>> parse_layers_argument("-1")
+    -1
     >>> parse_layers_argument("0-3")
     [0, 1, 2, 3]
     >>> parse_layers_argument("0,2,4")
@@ -167,7 +170,7 @@ def parse_layers_argument(layers: str, max_layers: int = 24) -> list[int] | int 
     >>> parse_layers_argument("25")
     Traceback (most recent call last):
     ...
-    ValueError: Invalid layers argument, see --help for more information
+    ValueError: Need 'layers' argument to obey -24 <= layer numbers <= 23
     >>> parse_layers_argument("0,2,-25")
     Traceback (most recent call last):
     ...
@@ -176,6 +179,16 @@ def parse_layers_argument(layers: str, max_layers: int = 24) -> list[int] | int 
 
     if layers == "all":
         return None
+
+    try:
+        layers = int(layers)
+    except Exception:
+        pass
+
+    if isinstance(layers, int):
+        if layers >= max_layers or layers < -max_layers:
+            raise ValueError(f"Need 'layers' argument to obey -{max_layers} <= layer numbers <= {max_layers - 1}")
+        return layers
 
     if "," in layers:
         # comma separated list ?
@@ -190,11 +203,3 @@ def parse_layers_argument(layers: str, max_layers: int = 24) -> list[int] | int 
         if any(layer >= max_layers or layer < -max_layers for layer in layers):
             raise ValueError(f"Need 'layers' argument to obey -{max_layers} <= layer numbers <= {max_layers - 1}")
         return layers
-
-    try:
-        layers = int(layers)
-        if layers >= max_layers or layers < -max_layers:
-            raise ValueError(f"Need 'layers' argument to obey -{max_layers} <= layer numbers <= {max_layers - 1}")
-        return layers
-    except ValueError:
-        raise ValueError("Invalid layers argument, see --help for more information")

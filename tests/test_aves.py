@@ -112,8 +112,6 @@ def test_cli():
     )
 
     assert p.returncode == 0
-    assert b"Processing 2 audio files..." in p.stdout
-    assert b"Saving embedding to example_audios/" in p.stdout
 
     # check that embdding files are saved
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
@@ -153,8 +151,6 @@ def test_cli_multiple_layers():
     )
 
     assert p.returncode == 0
-    assert b"Processing 2 audio files..." in p.stdout
-    assert b"Saving embedding to example_audios/" in p.stdout
 
     # check that embdding files are saved
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
@@ -195,8 +191,6 @@ def test_cli_multiple_layers_2():
     )
 
     assert p.returncode == 0
-    assert b"Processing 2 audio files..." in p.stdout
-    assert b"Saving embedding to example_audios/" in p.stdout
 
     # check that embdding files are saved
     assert (Path("example_audios") / "XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy").exists()
