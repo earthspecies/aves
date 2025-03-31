@@ -90,12 +90,14 @@ Inference on audio files:
 ```python
 # Load audio files from the example folder
 from aves.utils import parse_audio_file_paths, load_audio
-# Retrieve file paths
+
 audio_file_paths = parse_audio_file_paths("./example_audios/")
 print(audio_file_paths)
-
-# Load and resample audio to 16 kHz
-# Convert to mono by keeping only the first channel
+```
+```python
+# Load and resample audio to 16 kHz. AVES works with 16 KHz data!
+# Convert to mono by keeping only the first channel, otherwise the audio will be
+# considered a batch of 2 (for stereo)
 audios = [load_audio(f, mono=True, mono_avg=False) for f in audio_file_paths]
 # The loaded audio is stored as torch.Tensors, each of shape (num_samples,)
 print(audios[0].shape)
@@ -103,20 +105,23 @@ print(audios[0].shape)
 # Compute durations of loaded audio in seconds
 durations = [len(a) / 16000 for a in audios]
 print(durations)
+```
 
+```python
 # Extract features from the last layer
-# IMPORTANT: The extract_features method automatically adds a batch dimension.
+# IMPORTANT: The extract_features method automatically adds a batch dimension if missing in the audio
 features = [model.extract_features(audio, layers=-1) for audio in audios]
 print(features[0])   # Shape: (batch, sequence_length, embedding_dim)
-# Example output shape: torch.Size([1, 7244, 768])
 
 # The sequence dimension (2nd dim) corresponds to time.
 # AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
-print(int(features[0][1] // durations[0]))  # Output: 49
+print(int(features[0][1] // durations[0])) 
+```
 
+```python
 # Extract features from all layers
 features = [model.extract_features(audio, layers=None) for audio in audios]
-# AVES-all has 12 layers, so the output list length should be 12
+# AVES-all has 12 layers
 assert(len(features[0]) == 12)
 print(features[0][0].shape)
 # Example output shape: torch.Size([1, 7244, 768])

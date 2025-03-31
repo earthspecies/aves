@@ -1,5 +1,6 @@
 """AVES: Animal Vocalization Encoder based on Self-supervision"""
 
+import logging
 import json
 from pathlib import Path
 
@@ -7,9 +8,22 @@ import torch
 import torch.nn as nn
 from torchaudio.models import wav2vec2_model
 
+logger = logging.getLogger("aves")
+DEFAULT_DTYPE = torch.float32
+
 
 def load_config(config_path: str) -> dict:
-    """Load the model config json file"""
+    """Load the model config json file
+
+    Arguments
+    ---------
+    config_path: str
+        Path to the model configuration file
+
+    Returns
+    -------
+        dict: The model configuration
+    """
     with open(config_path, "r") as ff:
         obj = json.load(ff)
     return obj
@@ -50,6 +64,11 @@ class AVESTorchaudioWrapper(nn.Module):
 
         self.device = device
 
+    def _prep_input(self, inputs: torch.Tensor) -> torch.Tensor:
+        if inputs.ndim == 1:
+            inputs = inputs.unsqueeze(0)
+        return inputs.to(self.device).to(DEFAULT_DTYPE)
+
     def forward(self, inputs: torch.Tensor, layers: list[int] | int | None = -1) -> torch.Tensor | list[torch.Tensor]:
         """For training, use the forward method to get the output of the model.
 
@@ -64,6 +83,7 @@ class AVESTorchaudioWrapper(nn.Module):
         -------
             torch.Tensor | list[torch.Tensor]: Output tensor(s) from the model
         """
+        inputs = self._prep_input(inputs)
         out = self.model.extract_features(inputs)[0]
 
         if layers is not None and isinstance(layers, int):
@@ -85,14 +105,13 @@ class AVESTorchaudioWrapper(nn.Module):
 
         Arguments
         ---------
-            inputs (torch.Tensor): Input tensor
+            inputs (torch.Tensor): Input tensor of shape (batch_size, num_samples)
             layers (list[int] | int | None, optional): Layer(s) to extract features from. Defaults to -1 (last layer).
 
-        Returns:
+        Returns
+        -------
             torch.Tensor | list[torch.Tensor]: Output tensor
         """
-        if inputs.ndim == 1:
-            inputs = inputs.unsqueeze(0)
         return self.forward(inputs, layers)
 
 
@@ -180,7 +199,19 @@ class AVESClassifier(nn.Module):
             self.loss_func = nn.CrossEntropyLoss()
 
     def forward(self, inputs: torch.Tensor, labels: torch.Tensor = None) -> tuple[torch.Tensor | None, torch.Tensor]:
-        """Forward pass of the model"""
+        """Forward pass of the model
+
+        Arguments
+        ---------
+        inputs: torch.Tensor
+            Input audio tensor, should have a shape of (batch_size, num_time_steps)
+        labels: torch.Tensor, optional
+            Target labels. Defaults to None.
+
+        Returns
+        -------
+            tuple[torch.Tensor | None, torch.Tensor]: Loss and logits
+        """
         out = self.model.forward(inputs, layers=-1)
         out = out.mean(dim=1)  # mean pooling over time dimension
         logits = self.head(out)

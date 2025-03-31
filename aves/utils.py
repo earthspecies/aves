@@ -137,7 +137,7 @@ def load_audio(audio_file: str | os.PathLike | Path, mono: bool = False, mono_av
 
     # AVES models expect (C, N) shape. Stereo audio is (2, N).
     # else its (1, N) and if (N,) a single channel dim will be added as batch dimension by AVES
-
+    audio = audio.to(torch.float32)  # require by AVES model weights
     return audio
 
 

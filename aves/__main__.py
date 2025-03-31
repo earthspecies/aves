@@ -25,7 +25,9 @@ from .aves import load_feature_extractor
 from .utils import load_audio, parse_audio_file_paths, save_embedding, parse_layers_argument, DEFAULT_DEVICE
 
 # setup logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aves")
+
 MAX_LAYERS = 24  # Maximum number of layers in the large models
 
 
@@ -48,6 +50,9 @@ def setup_logging(level=logging.INFO):
         logger.setLevel(level)
         # Don't propagate to root logger
         logger.propagate = False
+
+
+setup_logging()
 
 
 def main():
