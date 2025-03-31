@@ -25,8 +25,8 @@ classifiers = [
 ]
 keywords = ["audio", "machine learning", "animal sounds", "feature extraction"]
 dependencies = [
-    "torch>=2.5.0",
-    "torchaudio>=2.5.0",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
     "soundfile>=0.13.0",
     "pytest>=8.3.4",
     "onnxruntime>=1.20.1",
