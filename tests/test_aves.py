@@ -7,6 +7,7 @@ and placed them in the ../models folder.
 """
 
 import os
+import pytest
 import subprocess
 from pathlib import Path
 
@@ -125,6 +126,31 @@ def test_cli():
     # remove these files
     os.remove("example_audios/XC448414 - Eurasian Bullfinch - Pyrrhula pyrrhula.embedding.npy")
     os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
+
+
+def test_cli_wrong_model():
+    """Test the AVES CLI with a wrong model path"""
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.run(
+            [
+                "aves",
+                "-c",
+                "config/default_cfg_birdaves-biox-large.json",
+                "-m",
+                "birdaves-biox-large.onnx",
+                "--path_to_audio_dir",
+                "example_audios/",
+                "--output_dir",
+                "example_audios/",
+                "--save_as",
+                "npy",
+                "--device",
+                "cpu",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
 
 
 def test_cli_multiple_layers():
