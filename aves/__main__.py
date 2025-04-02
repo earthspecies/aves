@@ -68,7 +68,7 @@ def main():
         "-m",
         "--model_path",
         type=str,
-        default=None,
+        required=True,
         help="Path to the model weights file. If not provided, will be using the Hubert Model without AVES weights.",
     )
 
@@ -126,13 +126,6 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.model_path:
-        logger.warning(
-            """!!CAUTION: Running the model without AVES weights!!
-            If you want to use AVES weights, provide the model_path argument
-            with the path to the AVES weights file."""
-        )
-
     # check that the only the "pt" model file extension is supported
     if args.model_path and Path(args.model_path).suffix != ".pt":
         raise ValueError(
@@ -156,7 +149,7 @@ def main():
 
     args.device = "cuda" if args.device == "cuda" and DEFAULT_DEVICE == "cuda" else "cpu"
 
-    print(f"Processing {len(audio_files)} audio files...")
+    logger.info(f"Processing {len(audio_files)} audio files...")
     for audio_file in audio_files:
         logger.info(f"==== Embedding {audio_file} ====")
 
