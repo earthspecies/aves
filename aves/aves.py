@@ -56,10 +56,10 @@ class AVESTorchaudioWrapper(nn.Module):
 
         self.config = load_config(str(config_path))
 
-        print("Initializing HuBERT model...")
+        logger.info("Initializing HuBERT model...")
         self.model = wav2vec2_model(**self.config, aux_num_out=None)
         if model_path is not None:
-            print("Loading AVES model weights from", model_path)
+            logger.info("Loading AVES model weights from", model_path)
             self.model.load_state_dict(torch.load(str(model_path), weights_only=True))
 
         self.device = device
@@ -190,7 +190,7 @@ class AVESClassifier(nn.Module):
         self.head.to(device)
 
         if freeze_feature_extractor:
-            print("Freezing feature extractor, it will NOT be updated during training!")
+            logger.info("Freezing feature extractor, it will NOT be updated during training!")
             self.model.requires_grad_(False)
 
         if num_classes == 1:

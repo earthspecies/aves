@@ -17,12 +17,12 @@ TARGET_SR = 16000  # AVES works with 16kHz audio
 DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def parse_audio_file_paths(audio_dir: str, audio_file_extension: str | None = None) -> list[Path]:
+def parse_audio_file_paths(audio_dir: str | Path, audio_file_extension: str | None = None) -> list[Path]:
     """Parse audio file paths from a directory or a list of paths.
 
     Arguments
     ---------
-    audio_dir: str
+    audio_dir: str | Path
         Path to the directory containing the audio files.
     audio_file_extension: str, optional
         Extension of the audio files to process. Defaults to None.
@@ -34,11 +34,14 @@ def parse_audio_file_paths(audio_dir: str, audio_file_extension: str | None = No
 
     Examples
     --------
-    >>> files = parse_audio_file_paths("../example_audios")
-    >>> str(files[0])
-    '../example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.wav'
-    >>> parse_audio_file_paths("../example_audios", "wav")
-    [PosixPath('../example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.wav')]
+    >>> from pathlib import Path; this_dir = Path(__file__).parent;
+    >>> example_audio_paths = this_dir.parent / "example_audios"
+    >>> files = parse_audio_file_paths(example_audio_paths)
+    >>> "XC936872 - Helmeted Guineafowl - Numida meleagris.wav" in str(files[0])
+    True
+    >>> files = parse_audio_file_paths(example_audio_paths, "wav")
+    >>> "XC936872 - Helmeted Guineafowl - Numida meleagris.wav" in str(files[0])
+    True
     """
     audio_dir = Path(audio_dir)
     if audio_file_extension is None:
@@ -113,7 +116,11 @@ def load_audio(audio_file: str | os.PathLike | Path, mono: bool = False, mono_av
 
     Examples
     --------
-    >>> audio = load_audio("../example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.wav")
+    >>> from pathlib import Path; this_dir = Path(__file__).parent;
+    >>> example_audio_paths = this_dir.parent / "example_audios"
+    >>> audio = load_audio(example_audio_paths / "XC936872 - Helmeted Guineafowl - Numida meleagris.wav", mono=True)
+    >>> audio.shape
+    torch.Size([2318327])
     """
     audio, sr = torchaudio.load(audio_file)
 
