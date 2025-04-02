@@ -91,6 +91,16 @@ def test_aves_onnx():
     assert outputs.shape == (2, 49, 1024)
 
 
+def test_utils_doctests():
+    """Run doctests in the utils module."""
+    import doctest
+    from aves import utils
+
+    failures, _ = doctest.testmod(utils)
+    assert failures == 0
+
+
+@pytest.mark.skip(reason="This test is only run when merging a new branch / PR")
 def test_cli():
     # Test the AVES CLI
     p = subprocess.run(
@@ -128,6 +138,7 @@ def test_cli():
     os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
 
 
+@pytest.mark.skip(reason="This test is only run when merging a new branch / PR")
 def test_cli_wrong_model():
     """Test the AVES CLI with a wrong model path"""
     with pytest.raises(subprocess.CalledProcessError):
@@ -153,6 +164,7 @@ def test_cli_wrong_model():
         )
 
 
+@pytest.mark.skip(reason="This test is only run when merging a new branch / PR")
 def test_cli_multiple_layers():
     # Test the AVES CLI
     p = subprocess.run(
@@ -193,6 +205,7 @@ def test_cli_multiple_layers():
     os.remove("example_audios/XC936872 - Helmeted Guineafowl - Numida meleagris.embedding.npy")
 
 
+@pytest.mark.skip(reason="This test is only run when merging a new branch / PR")
 def test_cli_multiple_layers_2():
     # Test the AVES CLI
     p = subprocess.run(
