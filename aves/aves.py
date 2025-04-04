@@ -59,7 +59,7 @@ class AVESTorchaudioWrapper(nn.Module):
         logger.info("Initializing HuBERT model...")
         self.model = wav2vec2_model(**self.config, aux_num_out=None)
         if model_path is not None:
-            logger.info("Loading AVES model weights from", model_path)
+            logger.info(f"Loading AVES model weights from {model_path}")
             self.model.load_state_dict(torch.load(str(model_path), weights_only=True))
 
         self.device = device
