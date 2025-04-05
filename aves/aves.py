@@ -51,7 +51,12 @@ class AVESTorchaudioWrapper(nn.Module):
     torch.Size([1, 49, 768])
     """
 
-    def __init__(self, config_path: str | Path, model_path: str | Path = None, device: str = "cuda"):
+    def __init__(
+        self,
+        config_path: str | Path,
+        model_path: str | Path = None,
+        device: str = "cuda",
+    ):
         super().__init__()
 
         self.config = load_config(str(config_path))
@@ -69,7 +74,9 @@ class AVESTorchaudioWrapper(nn.Module):
             inputs = inputs.unsqueeze(0)
         return inputs.to(self.device).to(DEFAULT_DTYPE)
 
-    def forward(self, inputs: torch.Tensor, layers: list[int] | int | None = -1) -> torch.Tensor | list[torch.Tensor]:
+    def forward(
+        self, inputs: torch.Tensor, layers: list[int] | int | None = -1
+    ) -> torch.Tensor | list[torch.Tensor]:
         """For training, use the forward method to get the output of the model.
 
         Arguments
@@ -116,7 +123,10 @@ class AVESTorchaudioWrapper(nn.Module):
 
 
 def load_feature_extractor(
-    config_path: str | Path, model_path: str | Path = None, device: str = "cuda", for_inference: bool = True
+    config_path: str | Path,
+    model_path: str | Path = None,
+    device: str = "cuda",
+    for_inference: bool = True,
 ) -> AVESTorchaudioWrapper:
     """Load the AVES feature extractor model
 
@@ -157,6 +167,8 @@ class AVESClassifier(nn.Module):
         Whether to freeze the feature extractor. Defaults to True.
     for_inference: bool, optional
         Whether to set the underlying feature extractor to inference mode. Defaults to False.
+    device: str, optional
+        Device to run the model on. Defaults to "cuda".
 
     Examples
     --------
@@ -181,16 +193,22 @@ class AVESClassifier(nn.Module):
     ):
         super().__init__()
 
-        self.model = load_feature_extractor(config_path, model_path, for_inference=for_inference, device=device)
+        self.model = load_feature_extractor(
+            config_path, model_path, for_inference=for_inference, device=device
+        )
         embeddings_dim = self.model.config.get("encoder_embed_dim", 768)
         self.head = nn.Linear(in_features=embeddings_dim, out_features=num_classes)
 
         device = "cuda" if torch.cuda.is_available() and device == "cuda" else "cpu"
-        self.device = device  # you still have to move the model to the device you want to use
+        self.device = (
+            device  # you still have to move the model to the device you want to use
+        )
         self.head.to(device)
 
         if freeze_feature_extractor:
-            logger.info("Freezing feature extractor, it will NOT be updated during training!")
+            logger.info(
+                "Freezing feature extractor, it will NOT be updated during training!"
+            )
             self.model.requires_grad_(False)
 
         if num_classes == 1:
@@ -198,7 +216,9 @@ class AVESClassifier(nn.Module):
         else:
             self.loss_func = nn.CrossEntropyLoss()
 
-    def forward(self, inputs: torch.Tensor, labels: torch.Tensor = None) -> tuple[torch.Tensor | None, torch.Tensor]:
+    def forward(
+        self, inputs: torch.Tensor, labels: torch.Tensor = None
+    ) -> tuple[torch.Tensor | None, torch.Tensor]:
         """Forward pass of the model
 
         Arguments

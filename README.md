@@ -4,9 +4,7 @@ Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES 
 
 Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
 
-Update (2025-02-22): AVES release v0.1.2 as a package.
-
-Update (2025-03-04): AVES package v0.1.3, bug fixes and more tests.
+Update (2025-04-05): AVES package v1.0.0, first major release of AVES package!
 
 ## What is AVES?
 
@@ -111,11 +109,11 @@ print(durations)
 # Extract features from the last layer
 # IMPORTANT: The extract_features method automatically adds a batch dimension if missing in the audio
 features = [model.extract_features(audio, layers=-1) for audio in audios]
-print(features[0])   # Shape: (batch, sequence_length, embedding_dim)
+print(features[0].shape)   # Shape: (batch, sequence_length, embedding_dim)
 
 # The sequence dimension (2nd dim) corresponds to time.
 # AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
-print(int(features[0][1] // durations[0])) 
+print(int(features[0].shape[1] // durations[0])) 
 ```
 
 ```python
@@ -137,8 +135,6 @@ print(features[0][0].shape)
 #### Using AVES as a classifier
 An example implementation for an AVES-based classifier is provided in `aves/aves.py` (`AVESClassifier`). This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
 
-Example code for testing this is also provided in the same file.
-
 ### ONNX
 Download the parameters and the model config under "ONNX version" in [Pretrained models](#pretrained-models).
 > NOTE: We observed that the ONNX version of AVES-`all` and BirdAVES could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem. When possible, use the TorchAudio version of the model.
@@ -147,6 +143,7 @@ An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*
 > NOTE: ONNX models accept float32 numpy arrays as input and provide numpy arrays as outputs.
 
 ```python
+import numpy as np
 from aves.aves_onnx import AVESOnnxModel
 
 # example with BirdAVES large
