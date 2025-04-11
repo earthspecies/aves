@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esp-aves"
+version = "1.0.0"
+description = "AVES package for audio feature extraction"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Masato Hagiwara", email = "masato@earthspecies.org"},
+    {name = "Maddie Cusimano", email = "maddie@earthspecies.org"},
+    {name = "Gagan Narula", email = "gagan@earthspecies.org"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+]
+keywords = ["audio", "machine learning", "animal sounds", "feature extraction"]
+dependencies = [
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "soundfile>=0.13.0",
+    "pytest>=8.3.4",
+    "onnxruntime>=1.20.1",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/earthspecies/aves"
+"Bug Tracker" = "https://github.com/earthspecies/aves/issues"
+
+[project.scripts]
+aves = "aves.__main__:main"
+
+[tool.setuptools]
+packages = ["aves"]
+
+[tool.setuptools.package-data]
+aves = ["py.typed", "config/*.json", "example_audios/*.wav", "example_audios/*.mp3"]

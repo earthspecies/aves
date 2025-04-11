@@ -1,8 +1,10 @@
 # AVES: Animal Vocalization Encoder based on Self-Supervision
 
-Update (6/5/2024): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
+Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
 
-Update (7/5/2024): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
+Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
+
+Update (2025-04-05): AVES package v1.0.0, first major release of AVES package!
 
 ## What is AVES?
 
@@ -16,133 +18,165 @@ See [our paper](https://arxiv.org/abs/2210.14493) for more details.
 
 ## How to use AVES
 
-Create a conda environment by running, for example:
+Create a virtual environment with anaconda by running, for example:
 
 ```
-conda create -n aves python=3.8 pytorch cudatoolkit=11.3 torchvision torchaudio cudnn -c pytorch -c conda-forge
+conda create -n aves python=3.10
+conda activate aves
 ```
 
-Create your working directory:
-
+### Install from pip
 ```
-mkdir aves
+pip install esp-aves
 ```
-
-Or simply clone this repository:
+### Install from source
+Clone this repository:
 
 ```
 git clone https://github.com/earthspecies/aves.git
 ```
 
-AVES is based on HuBERT, which is implemented in [fairseq](https://github.com/facebookresearch/fairseq), a sequence modeling toolkit developed by Meta AI. Check out [the specific commit](https://github.com/facebookresearch/fairseq/commit/eda703798dcfde11c1ee517805c27e8698285d71) of fairseq which AVES is based on, and install it via `pip`. Please note that you might encounter import issues if you install fairseq directly under your working directory. In the code below, we demonstrate installation under a sibling directory."
-
+cd into the repo root folder and install the package:
 ```
-git clone https://github.com/facebookresearch/fairseq.git
-cd fairseq
-git checkout eda70379
-pip install --editable ./
-cd ../aves
+pip install -e .
 ```
+## Ported versions
+The original model uses Fairseq models. We have ported the models to TorchAudio models and ONNX formats.
 
-Download the pretrained weights. See the table below for the details. We recommend the AVES-`bio` configuration, as it was the best performing model overall in our paper.
+### TorchAudio
+Download both the model and the model config under "TorchAudio version" in the [Pretrained models](#pretrained-models) section. You can also run this code in terminal:
 
-```
+```bash
 wget https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt
 ```
 
-You can load the model via the `fairseq.checkpoint_utils.load_model_ensemble_and_task()` method. You can implement a PyTorch classifier which uses AVES as follows. See [test_aves.py](./test_aves.py) for a working example of an AVES-based classifier. Note that AVES takes raw waveforms as input.
+to download the `aves-base-bio.pt` model. Replace the filename to download the desired model.
 
+#### Running AVES on Audio Files
+AVES embeddings can be computed with the following command:
+```
+aves -c /path/to/your/config.json -m /path/to/model.pt --path_to_audio_dir ./example_audios/ --output_dir /path/to/save/embeddings/
+```
+What you need to input are 4 things:
+1. The model config (see below, right click and "Save link as").
+2. The model file (see below, click to download the model corresponding to the config you saved).
+3. Path to a directory containing audio files (or specify individual files using `--audio_paths` parameter)
+4. Path to save the embeddings for each file (`--output_dir` parameter)
+
+Output embeddings can be saved as torch tensors (`--save_as pt`) or numpy arrays (`--save_as npy`)
+
+#### Running tests
+To run tests, from the root folder run ```pytest -v -s tests/```. One of the tests requires that you download the *birdaves-biox-large.onnx* model file and place it in a ./models folder in the repo root folder. If the model file is not found, this test will be skipped.
+
+#### AVES feature extraction examples
+These examples are based on the torchaudio version of the model weights.
+
+Loading the feature extractor is done simply with this helper function.
 ```python
-class AvesClassifier(nn.Module):
-    def __init__(self, model_path, num_classes, embeddings_dim=768, multi_label=False):
+from aves import load_feature_extractor
 
-        super().__init__()
-
-        models, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([model_path])
-        self.model = models[0]
-        self.model.feature_extractor.requires_grad_(False)
-        self.head = nn.Linear(in_features=embeddings_dim, out_features=num_classes)
-
-        if multi_label:
-            self.loss_func = nn.BCEWithLogitsLoss()
-        else:
-            self.loss_func = nn.CrossEntropyLoss()
-
-    def forward(self, x, y=None):
-        out = self.model.extract_features(x)[0]
-        out = out.mean(dim=1)             # mean pooling
-        logits = self.head(out)
-
-        loss = None
-        if y is not None:
-            loss = self.loss_func(logits, y)
-
-        return loss, logits
+# download the config and the torch model file
+# here, config is stored in config/ and the model was put in models/
+model = load_feature_extractor(
+    config_path="./config/default_cfg_aves-base-all.json",
+    model_path="./models/aves-base-all.torchaudio.pt",
+    device="cpu",
+    for_inference=True)  # for_inference sets model.eval()
 ```
 
-
-## Ported versions
-The original model uses Fairseq models. We have ported the models to TorchAudio models and Onnx formats.
-
-### TorchAudio
-Download both the parameters and the model config under `TorchAudio version` in [Pretrained models](##pretrained-models).
-
+Inference on audio files:
 ```python
-from torchaudio.models import wav2vec2_model
+# Load audio files from the example folder
+from aves.utils import parse_audio_file_paths, load_audio
 
-class AvesTorchaudioWrapper(nn.Module):
+audio_file_paths = parse_audio_file_paths("./example_audios/")
+print(audio_file_paths)
+```
+```python
+# Load and resample audio to 16 kHz. AVES works with 16 KHz data!
+# Convert to mono by keeping only the first channel, otherwise the audio will be
+# considered a batch of 2 (for stereo)
+audios = [load_audio(f, mono=True, mono_avg=False) for f in audio_file_paths]
+# The loaded audio is stored as torch.Tensors, each of shape (num_samples,)
+print(audios[0].shape)
 
-    def __init__(self, config_path, model_path):
-
-        super().__init__()
-
-        # reference: https://pytorch.org/audio/stable/_modules/torchaudio/models/wav2vec2/utils/import_fairseq.html
-
-        self.config = self.load_config(config_path)
-        self.model = wav2vec2_model(**self.config, aux_num_out=None)
-        self.model.load_state_dict(torch.load(model_path))
-        self.model.feature_extractor.requires_grad_(False)
-
-    def load_config(self, config_path):
-        with open(config_path, 'r') as ff:
-            obj = json.load(ff)
-
-        return obj
-
-    def forward(self, sig):
-        # extract_feature in the sorchaudio version will output all 12 layers' output, -1 to select the final one
-        out = self.model.extract_features(sig)[0][-1]
-
-        return out
-
-torchaudio_model = AvesTorchaudioWrapper(config_path, model_path)
-torchaudio_model.eval()
-
+# Compute durations of loaded audio in seconds
+durations = [len(a) / 16000 for a in audios]
+print(durations)
 ```
 
-### Onnx
-Download the parameters and the model config under `Onnx version` in [Pretrained models](##pretrained-models).
-NOTE: We observed that the Onnx version of AVES-`all` could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem.
-
-
 ```python
-    import onnxruntime
+# Extract features from the last layer
+# IMPORTANT: The extract_features method automatically adds a batch dimension if missing in the audio
+features = [model.extract_features(audio, layers=-1) for audio in audios]
+print(features[0].shape)   # Shape: (batch, sequence_length, embedding_dim)
 
-    ort_session = onnxruntime.InferenceSession(model_path)
-    ort_inputs = {ort_session.get_inputs()[0].name: sig}
-    ort_outs = ort_session.run(None, ort_inputs)
-    onnx_out = ort_outs[0]
+# The sequence dimension (2nd dim) corresponds to time.
+# AVES compresses time, mapping 1 second of 16 kHz audio to 49 steps.
+print(int(features[0].shape[1] // durations[0])) 
 ```
 
+```python
+# Extract features from all layers
+features = [model.extract_features(audio, layers=None) for audio in audios]
+# AVES-all has 12 layers
+assert(len(features[0]) == 12)
+print(features[0][0].shape)
+# Example output shape: torch.Size([1, 7244, 768])
+
+# Extract features from the first and second-to-last layers
+features = [model.extract_features(audio, layers=[0, -2]) for audio in audios]
+# Expecting two layers in the output
+assert(len(features[0]) == 2)
+print(features[0][0].shape)
+# Example output shape: torch.Size([1, 7244, 768])
+```
+
+#### Using AVES as a classifier
+An example implementation for an AVES-based classifier is provided in `aves/aves.py` (`AVESClassifier`). This class's forward method returns a tuple of two items, the classification **loss** and the **logits** (unnormalized classifier outputs).
+
+### ONNX
+Download the parameters and the model config under "ONNX version" in [Pretrained models](#pretrained-models).
+> NOTE: We observed that the ONNX version of AVES-`all` and BirdAVES could have large relative differences compared to the original version when the output values are close to zero. The TorchAudio versions don't have this problem. When possible, use the TorchAudio version of the model.
+
+An ONNX based feature extractor is provided in aves/aves_onnx.py *AvesOnnxModel*. 
+> NOTE: ONNX models accept float32 numpy arrays as input and provide numpy arrays as outputs.
+
+```python
+import numpy as np
+from aves.aves_onnx import AVESOnnxModel
+
+# example with BirdAVES large
+model_path = "/path/to/birdaves-bioxn-large.onnx"
+model = AVESOnnxModel(model_path)
+
+# create random inputs for testing, 
+# e.g. a batch of 2 audio files sampled at 16 KHz duration of 1 sec
+inputs = np.random.randn(2, 16000).astype("float32")  # float64 doesn't work
+onnx_out = model(inputs)
+assert onnx_out.shape == (2, 49, 1024)  # embedding size is 1024 for BirdAVES large, dim 1 is time dimension
+```
+
+## Embedding dimensions
+
+| Model Name | Embedding dim |
+| ---------- | ------------- |
+| AVES-core  | 768           |
+| AVES-bio   | 768           |
+| AVES-nonbio| 768           |
+| AVES-all   | 768           |
+| BirdAVES-biox-base | 768   |
+| BirdAVES-biox-large | 1024 |
+| BirdAVES-bion-large | 1024 |
 
 ## Pretrained models
 
-| Configuration      | Pretraining data            | Hours     | Link to pretrained weights   | TorchAudio version | Onnx version |
-| ------------------ | --------------------------- | --------- | ---------------------------- | ------------------ | ------------ |
-| AVES-`core`        | FSD50k + AS (core)          | 153       | [Download](https://storage.googleapis.com/esp-public-files/aves/aves-base-core.pt)   | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
-| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | [Download](https://storage.googleapis.com/esp-public-files/aves/aves-base-bio.pt)    | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
-| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | [Download](https://storage.googleapis.com/esp-public-files/aves/aves-base-nonbio.pt) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
-| AVES-`all`         | `core` + AS/VS (all)        | 5054      | [Download](https://storage.googleapis.com/esp-public-files/aves/aves-base-all.pt)    | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Download](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
+| Configuration      | Pretraining data            | Hours     | TorchAudio version | ONNX version |
+| ------------------ | --------------------------- | --------- | ------------------ | ------------ |
+| AVES-`core`        | FSD50k + AS (core)          | 153       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-core.onnx) |
+| AVES-`bio`         | `core` + AS/VS (animal)     | 360       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-bio.onnx) |
+| AVES-`nonbio`      | `core` + AS/VS (non-animal) | 360       | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-nonbio.onnx) |
+| AVES-`all`         | `core` + AS/VS (all)        | 5054      | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.pt) [Config](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.torchaudio.model_config.json) | [Model](https://storage.googleapis.com/esp-public-files/ported_aves/aves-base-all.onnx) |
 
 ## Colab Notebooks
 - [Supervised classification task](https://colab.research.google.com/drive/1ZmCyxSXtMVde6L_31OUnZRRWHPIxGamh?usp=sharing)
@@ -161,13 +195,13 @@ See the table below for detailed information and pretrained models. *BEANS avg. 
 | Configuration        | Pretraining Data               | Hours | BEANS avr. (all) | BEANS avr. (birds) | Models    |
 |----------------------|--------------------------------|-------|------------------|--------------------|-----------|
 | AVES-`bio` (baseline)  | `core` + AS/VS (animal)          | 360   | 0.643            | 0.419              | See above |
-| BirdAVES-`biox`-base   | `bio` + xeno-canto               | 2570  | 0.678            | 0.476              |  [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.onnx) |
-| BirdAVES-`biox`-large  | `bio` + xeno-canto               | 2570  | **0.686**        | 0.511              | [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.onnx) |
-| BirdAVES-`bioxn`-large | `bio` + xeno-canto + iNaturalist | 3076  | 0.679            | **0.512**          | [fairseq](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.pt) <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.onnx) |
+| BirdAVES-`biox`-base   | `bio` + xeno-canto               | 2570  | 0.678            | 0.476              | <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-base.onnx) |
+| BirdAVES-`biox`-large  | `bio` + xeno-canto               | 2570  | **0.686**        | 0.511              | [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-biox-large.onnx) |
+| BirdAVES-`bioxn`-large | `bio` + xeno-canto + iNaturalist | 3076  | 0.679            | **0.512**          | <br/> [TorchAudio](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.pt) ([config](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.torchaudio.model_config.json)) <br/> [ONNX](https://storage.googleapis.com/esp-public-files/birdaves/birdaves-bioxn-large.onnx) |
 
 ## Warning about batching in AVES models
 
-Padding will affect the embeddings produced by AVES and BirdAVES models, in both the fairseq and torchaudio versions. That is, two sound signals $x$ and $x_z = \mathrm{concat}(x, \mathrm{zeros}(n))$ will give different embeddings for every frame. The `lengths` argument does not fix this issue.
+Padding will affect the embeddings produced by AVES and BirdAVES models. That is, two sound signals $x$ and $x_z = \mathrm{concat}(x, \mathrm{zeros}(n))$ will give different embeddings for every frame. The `lengths` argument does not fix this issue.
 
 This is a problem with the underlying HuBERT architecture, which could only be fixed in more recent architectures (see this [issue](https://github.com/pytorch/audio/issues/2242) and this [pull request](https://github.com/facebookresearch/fairseq/pull/3228) for more details).
 
