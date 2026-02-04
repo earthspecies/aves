@@ -1,5 +1,7 @@
 # AVES: Animal Vocalization Encoder based on Self-Supervision
 
+Update (2025-02-04): AVES package is now migrating 🦅 to the AVEX package! Earth Species Project recently announced the release of the python package `avex`. This package builds on AVES and introduces a number of state of the art audio encoders for bioacoustics, including how to fine-tune (a.k.a probing) them for your use cases! Check out: https://github.com/earthspecies/avex. AVES models are now part of avex, and this repo will be frozen. Any issues should be posted on the AVEX repository ^^ which is actively maintained.
+
 Update (2024-06-05): 🦜 We are excited to introduce our latest series of AVES models, called BirdAVES, specifically scaled and trained for bird sounds. [Check out the details and pretrained models here](#birdaves).
 
 Update (2024-07-05): See our note on [batching](#warning-about-batching-in-aves-models) in AVES models.
